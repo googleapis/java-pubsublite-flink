@@ -6,6 +6,7 @@
   "client_documentation": "https://googleapis.dev/java/google-cloud-pubsublite-flink/latest/index.html",
   "release_level": "alpha",
   "transport": "grpc",
+  "min_java_version": 8,
   "language": "java",
   "repo": "googleapis/java-pubsublite-flink",
   "repo_short": "java-pubsublite-flink",
