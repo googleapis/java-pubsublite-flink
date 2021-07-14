@@ -21,12 +21,15 @@ import com.google.cloud.pubsublite.flink.PartitionFinishedCondition;
 import com.google.cloud.pubsublite.flink.split.SubscriptionPartitionSplit;
 import com.google.cloud.pubsublite.internal.BlockingPullSubscriber;
 import com.google.cloud.pubsublite.internal.CheckedApiException;
+import com.google.errorprone.annotations.concurrent.GuardedBy;
 import java.util.Optional;
 
 public class CompletablePullSubscriberImpl implements CompletablePullSubscriber {
   private final SubscriptionPartitionSplit split;
   private final BlockingPullSubscriber subscriber;
   PartitionFinishedCondition condition;
+
+  @GuardedBy("this")
   boolean finished = false;
 
   public CompletablePullSubscriberImpl(
@@ -43,7 +46,7 @@ public class CompletablePullSubscriberImpl implements CompletablePullSubscriber 
   }
 
   @Override
-  public Optional<SequencedMessage> messageIfAvailable() throws CheckedApiException {
+  public synchronized Optional<SequencedMessage> messageIfAvailable() throws CheckedApiException {
     if (finished) {
       return Optional.empty();
     }
@@ -67,7 +70,7 @@ public class CompletablePullSubscriberImpl implements CompletablePullSubscriber 
   }
 
   @Override
-  public boolean isFinished() {
+  public synchronized boolean isFinished() {
     return finished;
   }
 
