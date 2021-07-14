@@ -33,3 +33,20 @@ message SubscriptionPartitionSplitProto {
       // The cursor for this split.
       Cursor start = 3;
 }
+
+message PubsubLiteSplitEnumeratorProto {
+      message Subtask {
+            int32 id = 1;
+      }
+      message Discovery {
+            string topic = 1;
+            string subscription = 2;
+      }
+      message Assignment {
+            // If the split is unassigned, the subtask will not be present.
+            Subtask subtask = 1;
+            SubscriptionPartitionSplitProto split = 2;
+      }
+      Discovery discovery = 1;
+      repeated Assignment assignments = 2;
+}
