@@ -18,6 +18,9 @@ package com.google.cloud.pubsublite.flink;
 import com.google.cloud.pubsublite.Offset;
 import com.google.cloud.pubsublite.SequencedMessage;
 import com.google.cloud.pubsublite.proto.Cursor;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+import org.apache.flink.connector.base.source.reader.RecordsWithSplitIds;
 
 public class TestUtilities {
   public static SequencedMessage messageFromOffset(Offset offset) {
@@ -25,5 +28,15 @@ public class TestUtilities {
         com.google.cloud.pubsublite.proto.SequencedMessage.newBuilder()
             .setCursor(Cursor.newBuilder().setOffset(offset.value()))
             .build());
+  }
+
+  public static <T> Multimap<String, T> recordWithSplitsToMap(RecordsWithSplitIds<T> records) {
+    Multimap<String, T> map = HashMultimap.create();
+    for (String split = records.nextSplit(); split != null; split = records.nextSplit()) {
+      for (T m = records.nextRecordFromSplit(); m != null; m = records.nextRecordFromSplit()) {
+        map.put(split, m);
+      }
+    }
+    return map;
   }
 }
