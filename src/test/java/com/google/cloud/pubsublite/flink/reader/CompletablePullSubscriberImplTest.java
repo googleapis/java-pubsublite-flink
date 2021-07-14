@@ -16,11 +16,8 @@
 package com.google.cloud.pubsublite.flink.reader;
 
 import static com.google.cloud.pubsublite.flink.TestUtilities.messageFromOffset;
-import static com.google.cloud.pubsublite.internal.testing.UnitTestExamples.examplePartition;
-import static com.google.cloud.pubsublite.internal.testing.UnitTestExamples.exampleSubscriptionPath;
 import static com.google.common.truth.Truth.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -29,7 +26,6 @@ import com.google.cloud.pubsublite.Offset;
 import com.google.cloud.pubsublite.SequencedMessage;
 import com.google.cloud.pubsublite.flink.PartitionFinishedCondition;
 import com.google.cloud.pubsublite.flink.PartitionFinishedCondition.Result;
-import com.google.cloud.pubsublite.flink.split.SubscriptionPartitionSplit;
 import com.google.cloud.pubsublite.internal.BlockingPullSubscriber;
 import com.google.cloud.pubsublite.internal.CheckedApiException;
 import java.util.Optional;
@@ -44,14 +40,11 @@ public class CompletablePullSubscriberImplTest {
   @Mock PartitionFinishedCondition mockCondition;
   @Mock BlockingPullSubscriber mockSubscriber;
 
-  static final SubscriptionPartitionSplit split =
-      SubscriptionPartitionSplit.create(
-          exampleSubscriptionPath(), examplePartition(), Offset.of(0));
   CompletablePullSubscriberImpl subscriber;
 
   @Before
   public void setUp() {
-    subscriber = new CompletablePullSubscriberImpl(split, mockSubscriber, mockCondition);
+    subscriber = new CompletablePullSubscriberImpl(mockSubscriber, mockCondition);
   }
 
   @Test
@@ -79,11 +72,8 @@ public class CompletablePullSubscriberImplTest {
         .thenReturn(Optional.of(message2))
         .thenReturn(Optional.of(message3));
 
-    when(mockCondition.partitionFinished(
-            eq(exampleSubscriptionPath()), eq(examplePartition()), any(SequencedMessage.class)))
-        .thenReturn(Result.CONTINUE);
-    when(mockCondition.partitionFinished(exampleSubscriptionPath(), examplePartition(), message2))
-        .thenReturn(Result.FINISH_BEFORE);
+    when(mockCondition.partitionFinished(any(SequencedMessage.class))).thenReturn(Result.CONTINUE);
+    when(mockCondition.partitionFinished(message2)).thenReturn(Result.FINISH_BEFORE);
 
     assertThat(subscriber.messageIfAvailable()).isEqualTo(Optional.empty());
     assertThat(subscriber.messageIfAvailable()).isEqualTo(Optional.of(message1));
@@ -104,11 +94,8 @@ public class CompletablePullSubscriberImplTest {
         .thenReturn(Optional.of(message2))
         .thenReturn(Optional.of(message3));
 
-    when(mockCondition.partitionFinished(
-            eq(exampleSubscriptionPath()), eq(examplePartition()), any(SequencedMessage.class)))
-        .thenReturn(Result.CONTINUE);
-    when(mockCondition.partitionFinished(exampleSubscriptionPath(), examplePartition(), message2))
-        .thenReturn(Result.FINISH_AFTER);
+    when(mockCondition.partitionFinished(any(SequencedMessage.class))).thenReturn(Result.CONTINUE);
+    when(mockCondition.partitionFinished(message2)).thenReturn(Result.FINISH_AFTER);
 
     assertThat(subscriber.messageIfAvailable()).isEqualTo(Optional.empty());
     assertThat(subscriber.messageIfAvailable()).isEqualTo(Optional.of(message1));

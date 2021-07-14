@@ -18,14 +18,12 @@ package com.google.cloud.pubsublite.flink.reader;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.pubsublite.SequencedMessage;
 import com.google.cloud.pubsublite.flink.PartitionFinishedCondition;
-import com.google.cloud.pubsublite.flink.split.SubscriptionPartitionSplit;
 import com.google.cloud.pubsublite.internal.BlockingPullSubscriber;
 import com.google.cloud.pubsublite.internal.CheckedApiException;
 import com.google.errorprone.annotations.concurrent.GuardedBy;
 import java.util.Optional;
 
 public class CompletablePullSubscriberImpl implements CompletablePullSubscriber {
-  private final SubscriptionPartitionSplit split;
   private final BlockingPullSubscriber subscriber;
   PartitionFinishedCondition condition;
 
@@ -33,10 +31,7 @@ public class CompletablePullSubscriberImpl implements CompletablePullSubscriber 
   boolean finished = false;
 
   public CompletablePullSubscriberImpl(
-      SubscriptionPartitionSplit split,
-      BlockingPullSubscriber subscriber,
-      PartitionFinishedCondition condition) {
-    this.split = split;
+      BlockingPullSubscriber subscriber, PartitionFinishedCondition condition) {
     this.subscriber = subscriber;
     this.condition = condition;
   }
@@ -54,7 +49,7 @@ public class CompletablePullSubscriberImpl implements CompletablePullSubscriber 
     if (!m.isPresent()) {
       return Optional.empty();
     }
-    switch (condition.partitionFinished(split.subscriptionPath(), split.partition(), m.get())) {
+    switch (condition.partitionFinished(m.get())) {
       case CONTINUE:
         return m;
       case FINISH_AFTER:

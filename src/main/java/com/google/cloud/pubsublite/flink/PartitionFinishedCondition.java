@@ -21,15 +21,19 @@ import com.google.cloud.pubsublite.SubscriptionPath;
 import java.io.Serializable;
 
 public interface PartitionFinishedCondition extends Serializable {
-  static PartitionFinishedCondition continueIndefinitely() {
-    return (PartitionFinishedCondition) (path, partition, message) -> Result.CONTINUE;
-  }
-
-  Result partitionFinished(SubscriptionPath path, Partition partition, SequencedMessage message);
-
   enum Result {
     CONTINUE,
     FINISH_BEFORE,
     FINISH_AFTER,
+  }
+
+  Result partitionFinished(SequencedMessage message);
+
+  interface Factory extends Serializable {
+    PartitionFinishedCondition New(SubscriptionPath path, Partition partition);
+  }
+
+  static PartitionFinishedCondition.Factory continueIndefinitely() {
+    return (Factory) (path, partition) -> (PartitionFinishedCondition) message -> Result.CONTINUE;
   }
 }
