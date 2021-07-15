@@ -19,7 +19,10 @@ import com.google.api.core.ApiFuture;
 import com.google.api.core.ApiFutures;
 import com.google.api.core.SettableApiFuture;
 import com.google.cloud.pubsublite.SequencedMessage;
-import java.util.*;
+import java.util.Collection;
+import java.util.LinkedList;
+import java.util.Optional;
+import java.util.Queue;
 
 public class FakeSubscriber implements CompletablePullSubscriber {
   private final Queue<Optional<SequencedMessage>> messages;

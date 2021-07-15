@@ -23,11 +23,13 @@ import com.google.cloud.pubsublite.flink.split.SubscriptionPartitionSplit;
 import com.google.cloud.pubsublite.internal.BlockingPullSubscriber;
 import com.google.cloud.pubsublite.internal.CheckedApiException;
 import com.google.cloud.pubsublite.internal.ExtractStatus;
-import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.MoreExecutors;
 import java.io.IOException;
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -54,13 +56,14 @@ public class MessageSplitReader
   }
 
   private Multimap<String, SequencedMessage> getMessages() throws CheckedApiException {
-    HashMultimap<String, SequencedMessage> messages = HashMultimap.create();
+    ImmutableListMultimap.Builder<String, SequencedMessage> messages =
+        ImmutableListMultimap.builder();
     for (Map.Entry<String, CompletablePullSubscriber> entry : subscribers.entrySet()) {
       String splitId = entry.getKey();
       BlockingPullSubscriber sub = entry.getValue();
       sub.messageIfAvailable().ifPresent(m -> messages.put(splitId, m));
     }
-    return messages;
+    return messages.build();
   }
 
   private ApiFuture<Void> onData() {
@@ -114,7 +117,11 @@ public class MessageSplitReader
     }
     try {
       for (SubscriptionPartitionSplit newSplit : splitsChange.splits()) {
-        subscribers.put(newSplit.splitId(), factory.New(newSplit));
+        if (!subscribers.containsKey(newSplit.splitId())) {
+          subscribers.put(newSplit.splitId(), factory.New(newSplit));
+        } else {
+          LOG.error("Adding split {} which was already added to the fetcher", newSplit);
+        }
       }
     } catch (CheckedApiException e) {
       throw e.underlying;

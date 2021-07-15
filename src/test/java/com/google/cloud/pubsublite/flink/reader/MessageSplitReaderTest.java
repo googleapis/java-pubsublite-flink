@@ -71,7 +71,7 @@ public class MessageSplitReaderTest {
   }
 
   @Test
-  public void testFetch_SubscribeCreationError() throws Exception {
+  public void testSubscribeCreationError() throws Exception {
     when(mockFactory.New(exampleSplit)).thenThrow(new CheckedApiException(Code.INTERNAL));
 
     assertThrows(
@@ -161,6 +161,17 @@ public class MessageSplitReaderTest {
     reset(mockSubscriber);
     reader.close();
     verifyNoMoreInteractions(mockSubscriber);
+  }
+
+  @Test
+  public void testSplitAddedTwice() throws Exception {
+    CompletablePullSubscriber mockSubscriber =
+        spy(new FakeSubscriber(ImmutableList.of(Optional.empty())));
+    when(mockFactory.New(exampleSplit)).thenReturn(mockSubscriber);
+    reader.handleSplitsChanges(new SplitsAddition<>(ImmutableList.of(exampleSplit)));
+    reader.handleSplitsChanges(new SplitsAddition<>(ImmutableList.of(exampleSplit)));
+
+    reader.fetch();
   }
 
   @Test
