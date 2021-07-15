@@ -56,6 +56,7 @@ public class MessageSplitReader
   }
 
   private Multimap<String, SequencedMessage> getMessages() throws CheckedApiException {
+    // TODO: Consider pulling more than one message to avoid creating a future per message.
     ImmutableListMultimap.Builder<String, SequencedMessage> messages =
         ImmutableListMultimap.builder();
     for (Map.Entry<String, CompletablePullSubscriber> entry : subscribers.entrySet()) {
