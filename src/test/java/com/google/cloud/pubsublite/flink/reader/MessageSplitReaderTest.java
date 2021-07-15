@@ -29,6 +29,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.google.api.gax.rpc.ApiException;
 import com.google.api.gax.rpc.StatusCode.Code;
 import com.google.cloud.pubsublite.Offset;
 import com.google.cloud.pubsublite.Partition;
@@ -72,8 +73,10 @@ public class MessageSplitReaderTest {
   @Test
   public void testFetch_SubscribeCreationError() throws Exception {
     when(mockFactory.New(exampleSplit)).thenThrow(new CheckedApiException(Code.INTERNAL));
-    reader.handleSplitsChanges(new SplitsAddition<>(ImmutableList.of(exampleSplit)));
-    assertThrows(IOException.class, reader::fetch);
+
+    assertThrows(
+        ApiException.class,
+        () -> reader.handleSplitsChanges(new SplitsAddition<>(ImmutableList.of(exampleSplit))));
   }
 
   @Test
