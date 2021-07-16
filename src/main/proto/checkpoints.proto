@@ -34,19 +34,25 @@ message SubscriptionPartitionSplitProto {
       Cursor start = 3;
 }
 
-message PubsubLiteSplitEnumeratorProto {
+message SplitEnumeratorCheckpoint {
       message Subtask {
             int32 id = 1;
       }
       message Discovery {
-            string topic = 1;
-            string subscription = 2;
+            // The subscription for which to discover splits.
+            string subscription = 1;
+            // The topic corresponding to the subscription.
+            string topic = 2;
       }
       message Assignment {
-            // If the split is unassigned, the subtask will not be present.
+            // The subtask this split is assigned to. Not present if the
+            // split is unassigned.
             Subtask subtask = 1;
+            // The split.
             SubscriptionPartitionSplitProto split = 2;
       }
+      // State for split discovery.
       Discovery discovery = 1;
+      // Discovered splits, and their assignment state.
       repeated Assignment assignments = 2;
 }

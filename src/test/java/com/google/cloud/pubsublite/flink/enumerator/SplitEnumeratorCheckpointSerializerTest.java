@@ -17,24 +17,22 @@ package com.google.cloud.pubsublite.flink.enumerator;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.google.cloud.pubsublite.flink.proto.PubsubLiteSplitEnumeratorProto;
+import com.google.cloud.pubsublite.flink.proto.SplitEnumeratorCheckpoint;
 import java.io.IOException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class PubsubLiteSplitEnumeratorProtoSerializerTest {
+public class SplitEnumeratorCheckpointSerializerTest {
 
   @Test
   public void testSerialization() throws IOException {
-    PubsubLiteSplitEnumeratorProto proto =
-        PubsubLiteSplitEnumeratorProto.newBuilder()
-            .setDiscovery(
-                PubsubLiteSplitEnumeratorProto.Discovery.newBuilder().setSubscription("sub"))
+    SplitEnumeratorCheckpoint proto =
+        SplitEnumeratorCheckpoint.newBuilder()
+            .setDiscovery(SplitEnumeratorCheckpoint.Discovery.newBuilder().setSubscription("sub"))
             .build();
-    PubsubLiteSplitEnumeratorProtoSerializer serializer =
-        new PubsubLiteSplitEnumeratorProtoSerializer();
+    SplitEnumeratorCheckpointSerializer serializer = new SplitEnumeratorCheckpointSerializer();
     assertThat(serializer.deserialize(serializer.getVersion(), serializer.serialize(proto)))
         .isEqualTo(proto);
   }

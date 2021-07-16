@@ -15,24 +15,24 @@
  */
 package com.google.cloud.pubsublite.flink.enumerator;
 
-import com.google.cloud.pubsublite.flink.proto.PubsubLiteSplitEnumeratorProto;
+import com.google.cloud.pubsublite.flink.proto.SplitEnumeratorCheckpoint;
 import java.io.IOException;
 import org.apache.flink.core.io.SimpleVersionedSerializer;
 
-public class PubsubLiteSplitEnumeratorProtoSerializer
-    implements SimpleVersionedSerializer<PubsubLiteSplitEnumeratorProto> {
+public class SplitEnumeratorCheckpointSerializer
+    implements SimpleVersionedSerializer<SplitEnumeratorCheckpoint> {
   @Override
   public int getVersion() {
     return 0;
   }
 
   @Override
-  public byte[] serialize(PubsubLiteSplitEnumeratorProto message) throws IOException {
+  public byte[] serialize(SplitEnumeratorCheckpoint message) throws IOException {
     return message.toByteArray();
   }
 
   @Override
-  public PubsubLiteSplitEnumeratorProto deserialize(int i, byte[] bytes) throws IOException {
-    return PubsubLiteSplitEnumeratorProto.parseFrom(bytes);
+  public SplitEnumeratorCheckpoint deserialize(int i, byte[] bytes) throws IOException {
+    return SplitEnumeratorCheckpoint.parseFrom(bytes);
   }
 }
