@@ -34,5 +34,5 @@ public interface MessageTimestampExtractor extends Serializable {
         };
   }
 
-  long timestamp(SequencedMessage m) throws Exception;
+  long timestampMillis(SequencedMessage m) throws Exception;
 }

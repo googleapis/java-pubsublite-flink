@@ -19,7 +19,9 @@ import com.google.cloud.pubsublite.SequencedMessage;
 import com.google.cloud.pubsublite.flink.MessageTimestampExtractor;
 import com.google.cloud.pubsublite.flink.PubsubLiteDeserializationSchema;
 import com.google.cloud.pubsublite.flink.split.SubscriptionPartitionSplit;
+import com.google.common.collect.Multimap;
 import java.io.IOException;
+import java.util.Map;
 import java.util.Optional;
 import org.apache.flink.connector.base.source.reader.RecordsBySplits;
 import org.apache.flink.connector.base.source.reader.RecordsWithSplitIds;
@@ -28,34 +30,34 @@ import org.apache.flink.connector.base.source.reader.splitreader.SplitsChange;
 
 public class DeserializingSplitReader<T>
     implements SplitReader<Record<T>, SubscriptionPartitionSplit> {
-  final SplitReader<SequencedMessage, SubscriptionPartitionSplit> reader;
+  final SplitReader<SequencedMessage, SubscriptionPartitionSplit> underlying;
   final PubsubLiteDeserializationSchema<T> schema;
-  final MessageTimestampExtractor selector;
+  final MessageTimestampExtractor extractor;
 
   public DeserializingSplitReader(
-      SplitReader<SequencedMessage, SubscriptionPartitionSplit> reader,
+      SplitReader<SequencedMessage, SubscriptionPartitionSplit> underlying,
       PubsubLiteDeserializationSchema<T> schema,
-      MessageTimestampExtractor selector) {
-    this.reader = reader;
+      MessageTimestampExtractor extractor) {
+    this.underlying = underlying;
     this.schema = schema;
-    this.selector = selector;
+    this.extractor = extractor;
   }
 
   @Override
   public RecordsBySplits<Record<T>> fetch() throws IOException {
     RecordsBySplits.Builder<Record<T>> builder = new RecordsBySplits.Builder<>();
-    RecordsWithSplitIds<SequencedMessage> fetch = reader.fetch();
-    for (String split = fetch.nextSplit(); split != null; split = fetch.nextSplit()) {
-      for (SequencedMessage m = fetch.nextRecordFromSplit();
-          m != null;
-          m = fetch.nextRecordFromSplit()) {
-        try {
-          T value = schema.deserialize(m);
-          long timestamp = selector.timestamp(m);
-          builder.add(split, Record.create(Optional.ofNullable(value), m.offset(), timestamp));
-        } catch (Exception e) {
-          throw new IOException(e);
-        }
+    RecordsWithSplitIds<SequencedMessage> fetch = underlying.fetch();
+    Multimap<String, SequencedMessage> messageMap = ReaderUtils.recordWithSplitsToMap(fetch);
+    for (Map.Entry<String, SequencedMessage> entry : messageMap.entries()) {
+      String split = entry.getKey();
+      SequencedMessage message = entry.getValue();
+      try {
+        T value = schema.deserialize(message);
+        long timestampMillis = extractor.timestampMillis(message);
+        builder.add(
+            split, Record.create(Optional.ofNullable(value), message.offset(), timestampMillis));
+      } catch (Exception e) {
+        throw new IOException(e);
       }
     }
     builder.addFinishedSplits(fetch.finishedSplits());
@@ -64,16 +66,16 @@ public class DeserializingSplitReader<T>
 
   @Override
   public void handleSplitsChanges(SplitsChange<SubscriptionPartitionSplit> splitsChange) {
-    reader.handleSplitsChanges(splitsChange);
+    underlying.handleSplitsChanges(splitsChange);
   }
 
   @Override
   public void wakeUp() {
-    reader.wakeUp();
+    underlying.wakeUp();
   }
 
   @Override
   public void close() throws Exception {
-    reader.close();
+    underlying.close();
   }
 }

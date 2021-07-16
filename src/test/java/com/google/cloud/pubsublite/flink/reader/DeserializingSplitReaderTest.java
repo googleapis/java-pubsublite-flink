@@ -16,7 +16,7 @@
 package com.google.cloud.pubsublite.flink.reader;
 
 import static com.google.cloud.pubsublite.flink.TestUtilities.messageFromOffset;
-import static com.google.cloud.pubsublite.flink.TestUtilities.recordWithSplitsToMap;
+import static com.google.cloud.pubsublite.flink.reader.ReaderUtils.recordWithSplitsToMap;
 import static com.google.cloud.pubsublite.internal.testing.UnitTestExamples.examplePartition;
 import static com.google.cloud.pubsublite.internal.testing.UnitTestExamples.exampleSubscriptionPath;
 import static com.google.common.truth.Truth.assertThat;
@@ -80,8 +80,8 @@ public class DeserializingSplitReaderTest {
 
     when(mockDeserializationSchema.deserialize(message1)).thenReturn("one");
     when(mockDeserializationSchema.deserialize(message2)).thenReturn("two");
-    when(mockTimestampExtractor.timestamp(message1)).thenReturn(1L);
-    when(mockTimestampExtractor.timestamp(message2)).thenReturn(2L);
+    when(mockTimestampExtractor.timestampMillis(message1)).thenReturn(1L);
+    when(mockTimestampExtractor.timestampMillis(message2)).thenReturn(2L);
 
     RecordsBySplits.Builder<SequencedMessage> records = new RecordsBySplits.Builder<>();
     records.add("1", message1);
@@ -103,7 +103,7 @@ public class DeserializingSplitReaderTest {
     SequencedMessage message1 = messageFromOffset(Offset.of(10));
 
     when(mockDeserializationSchema.deserialize(message1)).thenReturn(null);
-    when(mockTimestampExtractor.timestamp(message1)).thenReturn(1L);
+    when(mockTimestampExtractor.timestampMillis(message1)).thenReturn(1L);
 
     RecordsBySplits.Builder<SequencedMessage> records = new RecordsBySplits.Builder<>();
     records.add("1", message1);
@@ -134,7 +134,7 @@ public class DeserializingSplitReaderTest {
     SequencedMessage message1 = messageFromOffset(Offset.of(10));
 
     when(mockDeserializationSchema.deserialize(message1)).thenReturn("one");
-    when(mockTimestampExtractor.timestamp(message1)).thenThrow(new Exception(""));
+    when(mockTimestampExtractor.timestampMillis(message1)).thenThrow(new Exception(""));
 
     RecordsBySplits.Builder<SequencedMessage> records = new RecordsBySplits.Builder<>();
     records.add("1", message1);

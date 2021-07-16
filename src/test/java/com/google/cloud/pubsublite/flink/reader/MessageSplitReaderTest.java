@@ -16,7 +16,7 @@
 package com.google.cloud.pubsublite.flink.reader;
 
 import static com.google.cloud.pubsublite.flink.TestUtilities.messageFromOffset;
-import static com.google.cloud.pubsublite.flink.TestUtilities.recordWithSplitsToMap;
+import static com.google.cloud.pubsublite.flink.reader.ReaderUtils.recordWithSplitsToMap;
 import static com.google.cloud.pubsublite.internal.testing.UnitTestExamples.examplePartition;
 import static com.google.cloud.pubsublite.internal.testing.UnitTestExamples.exampleSubscriptionPath;
 import static com.google.common.truth.Truth.assertThat;
