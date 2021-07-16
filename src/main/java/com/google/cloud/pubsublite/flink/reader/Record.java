@@ -13,17 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.pubsublite.flink;
+package com.google.cloud.pubsublite.flink.reader;
 
+import com.google.auto.value.AutoValue;
 import com.google.cloud.pubsublite.Offset;
-import com.google.cloud.pubsublite.SequencedMessage;
-import com.google.cloud.pubsublite.proto.Cursor;
+import java.time.Instant;
+import java.util.Optional;
 
-public class TestUtilities {
-  public static SequencedMessage messageFromOffset(Offset offset) {
-    return SequencedMessage.fromProto(
-        com.google.cloud.pubsublite.proto.SequencedMessage.newBuilder()
-            .setCursor(Cursor.newBuilder().setOffset(offset.value()))
-            .build());
+@AutoValue
+public abstract class Record<T> {
+  public abstract Optional<T> value();
+
+  public abstract Offset offset();
+
+  public abstract Instant timestamp();
+
+  public static <T> Record<T> create(Optional<T> value, Offset offset, Instant timestamp) {
+    return new AutoValue_Record<>(value, offset, timestamp);
   }
 }
