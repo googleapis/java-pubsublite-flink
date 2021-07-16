@@ -22,6 +22,7 @@ import static org.mockito.Mockito.*;
 import com.google.cloud.pubsublite.Offset;
 import com.google.cloud.pubsublite.flink.split.SubscriptionPartitionSplit;
 import com.google.cloud.pubsublite.flink.split.SubscriptionPartitionSplitState;
+import java.time.Instant;
 import java.util.Optional;
 import org.apache.flink.api.connector.source.SourceOutput;
 import org.junit.Test;
@@ -34,7 +35,7 @@ public class PubsubLiteRecordEmitterTest {
   static final SubscriptionPartitionSplit split =
       SubscriptionPartitionSplit.create(
           exampleSubscriptionPath(), examplePartition(), Offset.of(0));
-  static final long exampleTime = 1000;
+  static final Instant exampleTime = Instant.ofEpochMilli(1000);
 
   @Mock SourceOutput<Long> mockOutput;
 
@@ -47,7 +48,7 @@ public class PubsubLiteRecordEmitterTest {
         Record.create(Optional.of(100L), exampleOffset(), exampleTime), mockOutput, state);
 
     assertThat(state.toSplit().start()).isEqualTo(exampleOffset());
-    verify(mockOutput).collect(100L, exampleTime);
+    verify(mockOutput).collect(100L, exampleTime.toEpochMilli());
   }
 
   @Test

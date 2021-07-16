@@ -27,7 +27,7 @@ public class PubsubLiteRecordEmitter<T>
       SourceOutput<T> sourceOutput,
       SubscriptionPartitionSplitState subscriptionPartitionSplitState) {
     if (record.value().isPresent()) {
-      sourceOutput.collect(record.value().get(), record.timestamp());
+      sourceOutput.collect(record.value().get(), record.timestamp().toEpochMilli());
     }
     subscriptionPartitionSplitState.setCurrent(record.offset());
   }
