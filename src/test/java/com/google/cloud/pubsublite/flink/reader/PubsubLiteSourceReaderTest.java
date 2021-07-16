@@ -92,12 +92,9 @@ public class PubsubLiteSourceReaderTest {
     when(mockFactory.New(split1)).thenReturn(subscriberFromIntegers(1, 3, 5, 7));
 
     reader.addSplits(ImmutableList.of(split0, split1));
-    reader.isAvailable().get();
-
-    assertThat(reader.pollNext(output)).isEqualTo(InputStatus.MORE_AVAILABLE);
-    assertThat(reader.pollNext(output)).isEqualTo(InputStatus.MORE_AVAILABLE);
-    assertThat(reader.pollNext(output)).isEqualTo(InputStatus.MORE_AVAILABLE);
-    assertThat(reader.pollNext(output)).isEqualTo(InputStatus.MORE_AVAILABLE);
+    while (output.getEmittedRecords().size() < 4) {
+      reader.pollNext(output);
+    }
     assertThat(output.getEmittedRecords()).containsExactly("0", "1", "2", "3");
 
     reader.snapshotState(1);
@@ -105,9 +102,11 @@ public class PubsubLiteSourceReaderTest {
     verify(mockCursorCommitter).accept(makeSplit(Partition.of(0), Offset.of(2)));
     verify(mockCursorCommitter).accept(makeSplit(Partition.of(0), Offset.of(2)));
 
-    assertThat(reader.pollNext(output)).isEqualTo(InputStatus.MORE_AVAILABLE);
-    assertThat(reader.pollNext(output)).isEqualTo(InputStatus.MORE_AVAILABLE);
+    while (output.getEmittedRecords().size() < 6) {
+      reader.pollNext(output);
+    }
     assertThat(reader.pollNext(output)).isEqualTo(InputStatus.NOTHING_AVAILABLE);
+
     reader.notifyNoMoreSplits();
     assertThat(reader.pollNext(output)).isEqualTo(InputStatus.END_OF_INPUT);
     assertThat(output.getEmittedRecords()).containsExactly("0", "1", "2", "3", "5", "7");
