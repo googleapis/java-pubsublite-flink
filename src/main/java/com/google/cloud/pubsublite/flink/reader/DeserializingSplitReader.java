@@ -21,8 +21,10 @@ import com.google.cloud.pubsublite.flink.PubsubLiteDeserializationSchema;
 import com.google.cloud.pubsublite.flink.split.SubscriptionPartitionSplit;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
+import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
+import javax.annotation.Nullable;
 import org.apache.flink.connector.base.source.reader.RecordsBySplits;
 import org.apache.flink.connector.base.source.reader.RecordsWithSplitIds;
 import org.apache.flink.connector.base.source.reader.splitreader.SplitReader;
@@ -52,10 +54,9 @@ public class DeserializingSplitReader<T>
       String split = entry.getKey();
       SequencedMessage message = entry.getValue();
       try {
-        T value = schema.deserialize(message);
-        long timestampMillis = extractor.timestampMillis(message);
-        builder.add(
-            split, Record.create(Optional.ofNullable(value), message.offset(), timestampMillis));
+        @Nullable T value = schema.deserialize(message);
+        Instant timestamp = extractor.timestamp(message);
+        builder.add(split, Record.create(Optional.ofNullable(value), message.offset(), timestamp));
       } catch (Exception e) {
         throw new IOException(e);
       }

@@ -17,6 +17,7 @@ package com.google.cloud.pubsublite.flink.reader;
 
 import com.google.auto.value.AutoValue;
 import com.google.cloud.pubsublite.Offset;
+import java.time.Instant;
 import java.util.Optional;
 
 @AutoValue
@@ -25,9 +26,9 @@ public abstract class Record<T> {
 
   public abstract Offset offset();
 
-  public abstract long timestamp();
+  public abstract Instant timestamp();
 
-  public static <T> Record<T> create(Optional<T> value, Offset offset, long timestamp) {
+  public static <T> Record<T> create(Optional<T> value, Offset offset, Instant timestamp) {
     return new AutoValue_Record<>(value, offset, timestamp);
   }
 }

@@ -18,21 +18,23 @@ package com.google.cloud.pubsublite.flink;
 import com.google.cloud.Timestamp;
 import com.google.cloud.pubsublite.SequencedMessage;
 import java.io.Serializable;
+import java.time.Instant;
 
 public interface MessageTimestampExtractor extends Serializable {
   static MessageTimestampExtractor publishTimeExtractor() {
-    return (MessageTimestampExtractor) m -> Timestamp.fromProto(m.publishTime()).toDate().getTime();
+    return (MessageTimestampExtractor)
+        m -> Timestamp.fromProto(m.publishTime()).toDate().toInstant();
   }
 
   static MessageTimestampExtractor eventTimeExtractor() {
     return (MessageTimestampExtractor)
         m -> {
           if (m.message().eventTime().isPresent()) {
-            return Timestamp.fromProto(m.message().eventTime().get()).toDate().getTime();
+            return Timestamp.fromProto(m.message().eventTime().get()).toDate().toInstant();
           }
-          return Timestamp.fromProto(m.publishTime()).toDate().getTime();
+          return Timestamp.fromProto(m.publishTime()).toDate().toInstant();
         };
   }
 
-  long timestampMillis(SequencedMessage m) throws Exception;
+  Instant timestamp(SequencedMessage m) throws Exception;
 }

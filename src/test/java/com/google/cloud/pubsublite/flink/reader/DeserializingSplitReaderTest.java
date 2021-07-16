@@ -31,6 +31,7 @@ import com.google.cloud.pubsublite.flink.PubsubLiteDeserializationSchema;
 import com.google.cloud.pubsublite.flink.split.SubscriptionPartitionSplit;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
+import java.time.Instant;
 import java.util.Optional;
 import org.apache.flink.connector.base.source.reader.RecordsBySplits;
 import org.apache.flink.connector.base.source.reader.splitreader.SplitReader;
@@ -76,12 +77,14 @@ public class DeserializingSplitReaderTest {
   @Test
   public void testDeserialization() throws Exception {
     SequencedMessage message1 = messageFromOffset(Offset.of(10));
+    Instant time1 = Instant.ofEpochMilli(1);
     SequencedMessage message2 = messageFromOffset(Offset.of(20));
+    Instant time2 = Instant.ofEpochMilli(2);
 
     when(mockDeserializationSchema.deserialize(message1)).thenReturn("one");
     when(mockDeserializationSchema.deserialize(message2)).thenReturn("two");
-    when(mockTimestampExtractor.timestampMillis(message1)).thenReturn(1L);
-    when(mockTimestampExtractor.timestampMillis(message2)).thenReturn(2L);
+    when(mockTimestampExtractor.timestamp(message1)).thenReturn(time1);
+    when(mockTimestampExtractor.timestamp(message2)).thenReturn(time2);
 
     RecordsBySplits.Builder<SequencedMessage> records = new RecordsBySplits.Builder<>();
     records.add("1", message1);
@@ -93,17 +96,18 @@ public class DeserializingSplitReaderTest {
     assertThat(deserialized.finishedSplits()).containsExactly("finished");
     Multimap<String, Record<String>> messages = recordWithSplitsToMap(deserialized);
     assertThat(messages.get("1"))
-        .containsExactly(Record.create(Optional.of("one"), Offset.of(10), 1));
+        .containsExactly(Record.create(Optional.of("one"), Offset.of(10), time1));
     assertThat(messages.get("2"))
-        .containsExactly(Record.create(Optional.of("two"), Offset.of(20), 2));
+        .containsExactly(Record.create(Optional.of("two"), Offset.of(20), time2));
   }
 
   @Test
   public void testDeserializationReturnsNull() throws Exception {
     SequencedMessage message1 = messageFromOffset(Offset.of(10));
+    Instant time1 = Instant.ofEpochMilli(1);
 
     when(mockDeserializationSchema.deserialize(message1)).thenReturn(null);
-    when(mockTimestampExtractor.timestampMillis(message1)).thenReturn(1L);
+    when(mockTimestampExtractor.timestamp(message1)).thenReturn(time1);
 
     RecordsBySplits.Builder<SequencedMessage> records = new RecordsBySplits.Builder<>();
     records.add("1", message1);
@@ -113,7 +117,7 @@ public class DeserializingSplitReaderTest {
     assertThat(deserialized.finishedSplits()).isEmpty();
     Multimap<String, Record<String>> messages = recordWithSplitsToMap(deserialized);
     assertThat(messages.get("1"))
-        .containsExactly(Record.create(Optional.empty(), Offset.of(10), 1));
+        .containsExactly(Record.create(Optional.empty(), Offset.of(10), time1));
   }
 
   @Test
@@ -134,7 +138,7 @@ public class DeserializingSplitReaderTest {
     SequencedMessage message1 = messageFromOffset(Offset.of(10));
 
     when(mockDeserializationSchema.deserialize(message1)).thenReturn("one");
-    when(mockTimestampExtractor.timestampMillis(message1)).thenThrow(new Exception(""));
+    when(mockTimestampExtractor.timestamp(message1)).thenThrow(new Exception(""));
 
     RecordsBySplits.Builder<SequencedMessage> records = new RecordsBySplits.Builder<>();
     records.add("1", message1);

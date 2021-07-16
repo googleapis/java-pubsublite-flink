@@ -17,6 +17,7 @@ package com.google.cloud.pubsublite.flink;
 
 import com.google.cloud.pubsublite.SequencedMessage;
 import java.io.Serializable;
+import javax.annotation.Nullable;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 
@@ -46,13 +47,14 @@ public interface PubsubLiteDeserializationSchema<T> extends Serializable {
   /**
    * Deserialize a Pub/Sub Lite message
    *
-   * If a message cannot be deserialized, the schema can either thrown a exception which will
+   * <p>If a message cannot be deserialized, the schema can either thrown a exception which will
    * fail the source, or it can return null in which case the source will skip the message and
    * proceed.
    *
    * @param message The pub/sub lite message
    * @return The deserialized message as an object (null if the message cannot be deserialized).
    */
+  @Nullable
   T deserialize(SequencedMessage message) throws Exception;
 
   TypeInformation<T> getProducedType();
