@@ -44,7 +44,11 @@ public interface PubsubLiteDeserializationSchema<T> extends Serializable {
   void open(DeserializationSchema.InitializationContext context) throws Exception;
 
   /**
-   * Deserialize a pub/sub lite message
+   * Deserialize a Pub/Sub Lite message
+   *
+   * If a message cannot be deserialized, the schema can either thrown a exception which will
+   * fail the source, or it can return null in which case the source will skip the message and
+   * proceed.
    *
    * @param message The pub/sub lite message
    * @return The deserialized message as an object (null if the message cannot be deserialized).
