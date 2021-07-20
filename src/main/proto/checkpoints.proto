@@ -33,3 +33,26 @@ message SubscriptionPartitionSplitProto {
       // The cursor for this split.
       Cursor start = 3;
 }
+
+message SplitEnumeratorCheckpoint {
+      message Subtask {
+            int32 id = 1;
+      }
+      message Discovery {
+            // The subscription for which to discover splits.
+            string subscription = 1;
+            // The topic corresponding to the subscription.
+            string topic = 2;
+      }
+      message Assignment {
+            // The subtask this split is assigned to. Not present if the
+            // split is unassigned.
+            Subtask subtask = 1;
+            // The split.
+            SubscriptionPartitionSplitProto split = 2;
+      }
+      // State for split discovery.
+      Discovery discovery = 1;
+      // Discovered splits, and their assignment state.
+      repeated Assignment assignments = 2;
+}
