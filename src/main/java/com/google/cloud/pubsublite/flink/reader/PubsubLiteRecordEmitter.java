@@ -20,8 +20,8 @@ import org.apache.flink.api.connector.source.SourceOutput;
 import org.apache.flink.connector.base.source.reader.RecordEmitter;
 
 /**
- * The pubsub lite record emitter emits records to the source output and also tracks the position
- * of the source reader within the split by updating the current offset on the split state.
+ * The pubsub lite record emitter emits records to the source output and also tracks the position of
+ * the source reader within the split by updating the current offset on the split state.
  */
 public class PubsubLiteRecordEmitter<T>
     implements RecordEmitter<Record<T>, T, SubscriptionPartitionSplitState> {
