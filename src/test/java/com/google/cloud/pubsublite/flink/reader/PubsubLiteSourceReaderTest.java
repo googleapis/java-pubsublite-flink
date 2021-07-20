@@ -74,6 +74,7 @@ public class PubsubLiteSourceReaderTest {
   public void setUp() {
     reader =
         new PubsubLiteSourceReader<>(
+            new PubsubLiteRecordEmitter<>(),
             mockCursorCommitter,
             () ->
                 new DeserializingSplitReader<>(

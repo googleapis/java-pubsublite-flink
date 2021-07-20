@@ -19,6 +19,10 @@ import com.google.cloud.pubsublite.flink.split.SubscriptionPartitionSplitState;
 import org.apache.flink.api.connector.source.SourceOutput;
 import org.apache.flink.connector.base.source.reader.RecordEmitter;
 
+/**
+ * The pubsub lite record emitter emits records to the source output and also tracks the position
+ * of the source reader within the split by updating the current offset on the split state.
+ */
 public class PubsubLiteRecordEmitter<T>
     implements RecordEmitter<Record<T>, T, SubscriptionPartitionSplitState> {
   @Override
@@ -29,6 +33,7 @@ public class PubsubLiteRecordEmitter<T>
     if (record.value().isPresent()) {
       sourceOutput.collect(record.value().get(), record.timestamp().toEpochMilli());
     }
+    // Update the position of the source reader within the split.
     subscriptionPartitionSplitState.setCurrent(record.offset());
   }
 }

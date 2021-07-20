@@ -23,6 +23,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.flink.api.connector.source.SourceReaderContext;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.connector.base.source.reader.RecordEmitter;
 import org.apache.flink.connector.base.source.reader.SingleThreadMultiplexSourceReaderBase;
 import org.apache.flink.connector.base.source.reader.splitreader.SplitReader;
 
@@ -32,16 +33,20 @@ public class PubsubLiteSourceReader<T>
   private final CheckpointCursorCommitter checkpointCursorCommitter;
 
   public PubsubLiteSourceReader(
+      RecordEmitter<Record<T>, T, SubscriptionPartitionSplitState> recordEmitter,
       Consumer<SubscriptionPartitionSplit> cursorCommitter,
       Supplier<SplitReader<Record<T>, SubscriptionPartitionSplit>> splitReaderSupplier,
       Configuration config,
       SourceReaderContext context) {
-    super(splitReaderSupplier, new PubsubLiteRecordEmitter<>(), config, context);
+    super(splitReaderSupplier, recordEmitter, config, context);
     this.checkpointCursorCommitter = new CheckpointCursorCommitter(cursorCommitter);
   }
 
   @Override
   public List<SubscriptionPartitionSplit> snapshotState(long checkpointId) {
+    // When a checkpoint is started we intercept the checkpoint call and save the checkpoint.
+    // Once the checkpoint has been committed (notifyCheckpointComplete is called) we will propagate
+    // the cursors to pubsub lite.
     List<SubscriptionPartitionSplit> checkpoint = super.snapshotState(checkpointId);
     checkpointCursorCommitter.addCheckpoint(checkpointId, checkpoint);
     return checkpoint;
@@ -66,6 +71,8 @@ public class PubsubLiteSourceReader<T>
 
   @Override
   protected void onSplitFinished(Map<String, SubscriptionPartitionSplitState> map) {
+    // When splits are saved, we track the final position of the split so we can commit it to
+    // pubsub lite. This is necessary because the split will not appear in future checkpoints.
     checkpointCursorCommitter.notifySplitFinished(
         map.values().stream()
             .map(SubscriptionPartitionSplitState::toSplit)
