@@ -32,9 +32,9 @@ import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class RoundRobinPartitionAssignerTest {
+public class UniformPartitionAssignerTest {
 
-  PartitionAssigner assigner = RoundRobinPartitionAssigner.create();
+  PartitionAssigner assigner = UniformPartitionAssigner.create();
 
   static SubscriptionPartitionSplit makeSplit(Partition partition) {
     return SubscriptionPartitionSplit.create(exampleSubscriptionPath(), partition, exampleOffset());
@@ -99,7 +99,7 @@ public class RoundRobinPartitionAssignerTest {
 
     List<Assignment> checkpoint = assigner.checkpoint();
 
-    assigner = RoundRobinPartitionAssigner.fromCheckpoint(checkpoint);
+    assigner = UniformPartitionAssigner.fromCheckpoint(checkpoint);
 
     assignments = assigner.assignSplitsForTasks(ImmutableList.of(0, 1), 2);
     assertThat(assignments.get(0)).isEmpty();
@@ -154,7 +154,7 @@ public class RoundRobinPartitionAssignerTest {
     assertThat(assignments1.get(0)).hasSize(50);
     assertThat(assignments1.get(1)).hasSize(50);
 
-    for (int i = 100; i < 250; i++) {
+    for (int i = 100; i < 300; i++) {
       splits2.add(makeSplit(Partition.of(i)));
     }
 
@@ -162,6 +162,6 @@ public class RoundRobinPartitionAssignerTest {
     assignments2 = assigner.assignSplitsForTasks(ImmutableList.of(0, 1, 2), 3);
     assertThat(assignments2.get(0)).hasSize(50);
     assertThat(assignments2.get(1)).hasSize(50);
-    assertThat(assignments2.get(2)).hasSize(50);
+    assertThat(assignments2.get(2)).hasSize(100);
   }
 }

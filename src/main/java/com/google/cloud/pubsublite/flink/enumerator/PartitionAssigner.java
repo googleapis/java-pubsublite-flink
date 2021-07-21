@@ -20,6 +20,7 @@ import com.google.cloud.pubsublite.flink.split.SubscriptionPartitionSplit;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 interface PartitionAssigner {
 
@@ -31,4 +32,9 @@ interface PartitionAssigner {
   void addSplits(Collection<SubscriptionPartitionSplit> splits);
 
   Collection<SubscriptionPartitionSplit> listSplits();
+}
+
+interface AssignmentAlgorithm {
+  Map<SubscriptionPartitionSplit, Integer> assign(
+      Set<SubscriptionPartitionSplit> unassigned, Map<Integer, Long> currentDistribution);
 }

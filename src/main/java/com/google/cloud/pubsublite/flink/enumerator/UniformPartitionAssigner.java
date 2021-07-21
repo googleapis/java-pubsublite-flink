@@ -24,12 +24,9 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import java.util.*;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-public class RoundRobinPartitionAssigner implements PartitionAssigner {
+public class UniformPartitionAssigner implements PartitionAssigner {
 
-  private static final Logger LOG = LoggerFactory.getLogger(RoundRobinPartitionAssigner.class);
   private final HashMap<SplitKey, Integer> assignments;
   private final HashMap<SplitKey, SubscriptionPartitionSplit> allSplits;
 
@@ -40,22 +37,32 @@ public class RoundRobinPartitionAssigner implements PartitionAssigner {
     public abstract Partition partition();
 
     public static SplitKey of(SubscriptionPartitionSplit split) {
-      return new AutoValue_RoundRobinPartitionAssigner_SplitKey(
+      return new AutoValue_UniformPartitionAssigner_SplitKey(
           split.subscriptionPath(), split.partition());
     }
   }
 
-  private RoundRobinPartitionAssigner(
+  static class TaskAndCount {
+    final int task;
+    final long count;
+
+    public TaskAndCount(int task, long count) {
+      this.task = task;
+      this.count = count;
+    }
+  }
+
+  private UniformPartitionAssigner(
       Map<SplitKey, Integer> assignments, Map<SplitKey, SubscriptionPartitionSplit> splits) {
     this.assignments = new HashMap<>(assignments);
     this.allSplits = new HashMap<>(splits);
   }
 
-  static RoundRobinPartitionAssigner create() {
-    return new RoundRobinPartitionAssigner(new HashMap<>(), new HashMap<>());
+  static UniformPartitionAssigner create() {
+    return new UniformPartitionAssigner(new HashMap<>(), new HashMap<>());
   }
 
-  static RoundRobinPartitionAssigner fromCheckpoint(
+  static UniformPartitionAssigner fromCheckpoint(
       Collection<SplitEnumeratorCheckpoint.Assignment> assignments) {
     Map<SplitKey, Integer> enactedAssignments = new HashMap<>();
     Map<SplitKey, SubscriptionPartitionSplit> splits = new HashMap<>();
@@ -69,7 +76,7 @@ public class RoundRobinPartitionAssigner implements PartitionAssigner {
             enactedAssignments.put(key, assignment.getSubtask().getId());
           }
         });
-    return new RoundRobinPartitionAssigner(enactedAssignments, splits);
+    return new UniformPartitionAssigner(enactedAssignments, splits);
   }
 
   public List<SplitEnumeratorCheckpoint.Assignment> checkpoint() {
@@ -118,12 +125,35 @@ public class RoundRobinPartitionAssigner implements PartitionAssigner {
   }
 
   private Multimap<Integer, SplitKey> computeNewAssignments(int numWorkers) {
-    HashMultimap<Integer, SplitKey> proposal = HashMultimap.create();
+    HashMap<Integer, Long> taskToCount = new HashMap<>();
     Set<SplitKey> unassigned = allSplits.keySet();
-    unassigned.removeAll(assignments.keySet());
+    assignments.forEach(
+        (key, task) -> {
+          taskToCount.put(task, taskToCount.getOrDefault(task, 0L) + 1);
+          unassigned.remove(key);
+        });
+    // Create a priority queue which orders first by assignment count and second by task index.
+    // Ordering by task index isn't important for the distribution, but it makes assignments stable.
+    PriorityQueue<TaskAndCount> queue =
+        new PriorityQueue<>(
+            numWorkers,
+            (o1, o2) -> {
+              if (o1.count == o2.count) {
+                return o1.task - o2.task;
+              }
+              return Long.signum(o1.count - o2.count);
+            });
+    // Add each worker to the priority queue with the number of splits they are currently assigned.
+    for (int i = 0; i < numWorkers; i++) {
+      queue.add(new TaskAndCount(i, taskToCount.getOrDefault(i, 0L)));
+    }
+
+    Multimap<Integer, SplitKey> proposal = HashMultimap.create();
     for (SplitKey split : unassigned) {
-      int owner = (int) (split.partition().value() % numWorkers);
-      proposal.put(owner, split);
+      TaskAndCount assignment = queue.poll();
+      assert assignment != null;
+      proposal.put(assignment.task, split);
+      queue.add(new TaskAndCount(assignment.task, assignment.count + 1));
     }
     return proposal;
   }
