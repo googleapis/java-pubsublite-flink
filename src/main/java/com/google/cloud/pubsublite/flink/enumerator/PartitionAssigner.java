@@ -33,8 +33,3 @@ interface PartitionAssigner {
 
   Collection<SubscriptionPartitionSplit> listSplits();
 }
-
-interface AssignmentAlgorithm {
-  Map<SubscriptionPartitionSplit, Integer> assign(
-      Set<SubscriptionPartitionSplit> unassigned, Map<Integer, Long> currentDistribution);
-}
