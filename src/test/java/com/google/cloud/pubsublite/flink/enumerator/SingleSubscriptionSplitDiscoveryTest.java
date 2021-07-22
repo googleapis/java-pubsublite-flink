@@ -126,6 +126,8 @@ public class SingleSubscriptionSplitDiscoveryTest {
 
     when(mockAdminClient.getTopicPartitionCount(exampleTopicPath()))
         .thenReturn(ApiFutures.immediateFuture(4L));
+    when(mockCursorClient.listPartitionCursors(exampleSubscriptionPath()))
+        .thenReturn(ApiFutures.immediateFuture(ImmutableMap.of(Partition.of(3), Offset.of(2))));
     assertThat(restored.discoverSplits()).hasSize(1);
   }
 
@@ -136,11 +138,15 @@ public class SingleSubscriptionSplitDiscoveryTest {
     List<SubscriptionPartitionSplit> splits =
         ImmutableList.of(
             SubscriptionPartitionSplit.create(
-                SubscriptionPath.parse(exampleSubscriptionPath().toString() + "-other"), Partition.of(2), Offset.of(4)));
-    assertThrows(IllegalStateException.class, () -> {
-      SingleSubscriptionSplitDiscovery.fromCheckpoint(
-          proto, splits, mockAdminClient, mockCursorClient);
-    });
+                SubscriptionPath.parse(exampleSubscriptionPath().toString() + "-other"),
+                Partition.of(2),
+                Offset.of(4)));
+    assertThrows(
+        IllegalStateException.class,
+        () -> {
+          SingleSubscriptionSplitDiscovery.fromCheckpoint(
+              proto, splits, mockAdminClient, mockCursorClient);
+        });
   }
 
   @Test

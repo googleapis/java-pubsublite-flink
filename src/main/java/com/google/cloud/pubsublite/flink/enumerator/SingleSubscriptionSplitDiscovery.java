@@ -25,7 +25,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 
 public class SingleSubscriptionSplitDiscovery implements SplitDiscovery {
   private final AdminClient adminClient;
@@ -64,9 +63,13 @@ public class SingleSubscriptionSplitDiscovery implements SplitDiscovery {
     SubscriptionPath subscriptionPath = SubscriptionPath.parse(proto.getSubscription());
     TopicPath topicPath = TopicPath.parse(proto.getTopic());
     long partitionCount = 0;
-    for(SubscriptionPartitionSplit s: currentSplits) {
-      if(!s.subscriptionPath().equals(subscriptionPath)) {
-        throw new IllegalArgumentException("Split discovery configured with subscription " + subscriptionPath + " but current splits contains a split from subscription " + s);
+    for (SubscriptionPartitionSplit s : currentSplits) {
+      if (!s.subscriptionPath().equals(subscriptionPath)) {
+        throw new IllegalStateException(
+            "Split discovery configured with subscription "
+                + subscriptionPath
+                + " but current splits contains a split from subscription "
+                + s);
       }
       partitionCount = Math.max(partitionCount, s.partition().value() + 1);
     }
