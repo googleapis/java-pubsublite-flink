@@ -42,13 +42,14 @@ public class UniformPartitionAssigner implements PartitionAssigner {
     }
   }
 
-  static class TaskAndCount {
-    final int task;
-    final long count;
+  @AutoValue
+  abstract static class TaskAndCount {
+    public abstract int task();
 
-    public TaskAndCount(int task, long count) {
-      this.task = task;
-      this.count = count;
+    public abstract long partitionsAssigned();
+
+    static TaskAndCount of(int task, long partitionsAssigned) {
+      return new AutoValue_UniformPartitionAssigner_TaskAndCount(task, partitionsAssigned);
     }
   }
 
@@ -138,22 +139,22 @@ public class UniformPartitionAssigner implements PartitionAssigner {
         new PriorityQueue<>(
             numWorkers,
             (o1, o2) -> {
-              if (o1.count == o2.count) {
-                return o1.task - o2.task;
+              if (o1.partitionsAssigned() == o2.partitionsAssigned()) {
+                return o1.task() - o2.task();
               }
-              return Long.signum(o1.count - o2.count);
+              return Long.signum(o1.partitionsAssigned() - o2.partitionsAssigned());
             });
     // Add each worker to the priority queue with the number of splits they are currently assigned.
     for (int i = 0; i < numWorkers; i++) {
-      queue.add(new TaskAndCount(i, taskToCount.getOrDefault(i, 0L)));
+      queue.add(TaskAndCount.of(i, taskToCount.getOrDefault(i, 0L)));
     }
 
     Multimap<Integer, SplitKey> proposal = HashMultimap.create();
     for (SplitKey split : unassigned) {
       TaskAndCount assignment = queue.poll();
       assert assignment != null;
-      proposal.put(assignment.task, split);
-      queue.add(new TaskAndCount(assignment.task, assignment.count + 1));
+      proposal.put(assignment.task(), split);
+      queue.add(TaskAndCount.of(assignment.task(), assignment.partitionsAssigned() + 1));
     }
     return proposal;
   }
