@@ -28,6 +28,7 @@ import com.google.api.gax.rpc.StatusCode;
 import com.google.cloud.pubsublite.AdminClient;
 import com.google.cloud.pubsublite.Offset;
 import com.google.cloud.pubsublite.Partition;
+import com.google.cloud.pubsublite.SubscriptionPath;
 import com.google.cloud.pubsublite.flink.proto.SplitEnumeratorCheckpoint;
 import com.google.cloud.pubsublite.flink.split.SubscriptionPartitionSplit;
 import com.google.cloud.pubsublite.internal.CheckedApiException;
@@ -124,8 +125,22 @@ public class SingleSubscriptionSplitDiscoveryTest {
             proto, splits, mockAdminClient, mockCursorClient);
 
     when(mockAdminClient.getTopicPartitionCount(exampleTopicPath()))
-        .thenReturn(ApiFutures.immediateFuture(2L));
-    assertThat(restored.discoverSplits()).isEmpty();
+        .thenReturn(ApiFutures.immediateFuture(4L));
+    assertThat(restored.discoverSplits()).hasSize(1);
+  }
+
+  @Test
+  public void testCheckpointRestore_SubscriptionMismatch() {
+    SplitEnumeratorCheckpoint.Discovery proto = discovery.checkpoint();
+
+    List<SubscriptionPartitionSplit> splits =
+        ImmutableList.of(
+            SubscriptionPartitionSplit.create(
+                SubscriptionPath.parse(exampleSubscriptionPath().toString() + "-other"), Partition.of(2), Offset.of(4)));
+    assertThrows(IllegalStateException.class, () -> {
+      SingleSubscriptionSplitDiscovery.fromCheckpoint(
+          proto, splits, mockAdminClient, mockCursorClient);
+    });
   }
 
   @Test

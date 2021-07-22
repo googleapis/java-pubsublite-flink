@@ -63,23 +63,24 @@ public class SingleSubscriptionSplitDiscovery implements SplitDiscovery {
       CursorClient cursorClient) {
     SubscriptionPath subscriptionPath = SubscriptionPath.parse(proto.getSubscription());
     TopicPath topicPath = TopicPath.parse(proto.getTopic());
-    long partitionCount =
-        currentSplits.stream()
-            .filter(s -> s.subscriptionPath().equals(subscriptionPath))
-            .mapToLong(a -> a.partition().value())
-            .max()
-            .orElse(0);
+    long partitionCount = 0;
+    for(SubscriptionPartitionSplit s: currentSplits) {
+      if(!s.subscriptionPath().equals(subscriptionPath)) {
+        throw new IllegalArgumentException("Split discovery configured with subscription " + subscriptionPath + " but current splits contains a split from subscription " + s);
+      }
+      partitionCount = Math.max(partitionCount, s.partition().value() + 1);
+    }
     return new SingleSubscriptionSplitDiscovery(
         adminClient, cursorClient, topicPath, subscriptionPath, partitionCount);
   }
 
-  public List<SubscriptionPartitionSplit> discoverSplits() throws ApiException {
+  public synchronized List<SubscriptionPartitionSplit> discoverSplits() throws ApiException {
     List<SubscriptionPartitionSplit> newSplits = new ArrayList<>();
     long newPartitionCount;
     try {
       newPartitionCount = adminClient.getTopicPartitionCount(topicPath).get();
-    } catch (ExecutionException | InterruptedException e) {
-      throw ExtractStatus.toCanonical(e).underlying;
+    } catch (Throwable t) {
+      throw ExtractStatus.toCanonical(t).underlying;
     }
     if (newPartitionCount == partitionCount) {
       return newSplits;
@@ -87,8 +88,8 @@ public class SingleSubscriptionSplitDiscovery implements SplitDiscovery {
     Map<Partition, Offset> cursorMap;
     try {
       cursorMap = cursorClient.listPartitionCursors(subscriptionPath).get();
-    } catch (ExecutionException | InterruptedException e) {
-      throw ExtractStatus.toCanonical(e).underlying;
+    } catch (Throwable t) {
+      throw ExtractStatus.toCanonical(t).underlying;
     }
     for (long p = partitionCount; p < newPartitionCount; p++) {
       Partition partition = Partition.of(p);
@@ -99,7 +100,7 @@ public class SingleSubscriptionSplitDiscovery implements SplitDiscovery {
     return newSplits;
   }
 
-  public SplitEnumeratorCheckpoint.Discovery checkpoint() {
+  public synchronized SplitEnumeratorCheckpoint.Discovery checkpoint() {
     return SplitEnumeratorCheckpoint.Discovery.newBuilder()
         .setSubscription(subscriptionPath.toString())
         .setTopic(topicPath.toString())
@@ -107,7 +108,7 @@ public class SingleSubscriptionSplitDiscovery implements SplitDiscovery {
   }
 
   @Override
-  public void close() {
+  public synchronized void close() {
     try (AdminClient a = adminClient;
         CursorClient c = cursorClient) {}
   }
