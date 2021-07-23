@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 
 public class UniformPartitionAssigner implements PartitionAssigner {
 
-  private final HashMap<SplitKey, Integer> assignments;
+  private final HashMap<SplitKey, TaskId> assignments;
   private final HashMap<SplitKey, SubscriptionPartitionSplit> allSplits;
 
   @AutoValue
@@ -44,17 +44,17 @@ public class UniformPartitionAssigner implements PartitionAssigner {
 
   @AutoValue
   abstract static class TaskAndCount {
-    public abstract int task();
+    public abstract TaskId task();
 
     public abstract long partitionsAssigned();
 
-    static TaskAndCount of(int task, long partitionsAssigned) {
+    static TaskAndCount of(TaskId task, long partitionsAssigned) {
       return new AutoValue_UniformPartitionAssigner_TaskAndCount(task, partitionsAssigned);
     }
   }
 
   private UniformPartitionAssigner(
-      Map<SplitKey, Integer> assignments, Map<SplitKey, SubscriptionPartitionSplit> splits) {
+      Map<SplitKey, TaskId> assignments, Map<SplitKey, SubscriptionPartitionSplit> splits) {
     this.assignments = new HashMap<>(assignments);
     this.allSplits = new HashMap<>(splits);
   }
@@ -65,7 +65,7 @@ public class UniformPartitionAssigner implements PartitionAssigner {
 
   static UniformPartitionAssigner fromCheckpoint(
       Collection<SplitEnumeratorCheckpoint.Assignment> assignments) {
-    Map<SplitKey, Integer> enactedAssignments = new HashMap<>();
+    Map<SplitKey, TaskId> enactedAssignments = new HashMap<>();
     Map<SplitKey, SubscriptionPartitionSplit> splits = new HashMap<>();
     assignments.forEach(
         assignment -> {
@@ -74,7 +74,7 @@ public class UniformPartitionAssigner implements PartitionAssigner {
           SplitKey key = SplitKey.of(split);
           splits.put(key, split);
           if (assignment.hasSubtask()) {
-            enactedAssignments.put(key, assignment.getSubtask().getId());
+            enactedAssignments.put(key, TaskId.of(assignment.getSubtask().getId()));
           }
         });
     return new UniformPartitionAssigner(enactedAssignments, splits);
@@ -88,17 +88,17 @@ public class UniformPartitionAssigner implements PartitionAssigner {
               SplitEnumeratorCheckpoint.Assignment.newBuilder();
           b.setSplit(split.toProto());
           if (assignments.containsKey(key)) {
-            b.setSubtask(b.getSubtaskBuilder().setId(assignments.get(key)));
+            b.setSubtask(b.getSubtaskBuilder().setId(assignments.get(key).value()));
           }
           splits.add(b.build());
         });
     return splits;
   }
 
-  public Map<Integer, List<SubscriptionPartitionSplit>> assignSplitsForTasks(
-      Collection<Integer> tasks, int currentParallelism) {
-    Multimap<Integer, SplitKey> proposed = computeNewAssignments(currentParallelism);
-    Map<Integer, List<SubscriptionPartitionSplit>> newAssignments = new HashMap<>();
+  public Map<TaskId, List<SubscriptionPartitionSplit>> assignSplitsForTasks(
+      Collection<TaskId> tasks, int currentParallelism) {
+    Multimap<TaskId, SplitKey> proposed = computeNewAssignments(currentParallelism);
+    Map<TaskId, List<SubscriptionPartitionSplit>> newAssignments = new HashMap<>();
     tasks.forEach(
         subtaskId -> {
           Collection<SplitKey> toAssign = proposed.get(subtaskId);
@@ -124,8 +124,8 @@ public class UniformPartitionAssigner implements PartitionAssigner {
     return allSplits.values();
   }
 
-  private Multimap<Integer, SplitKey> computeNewAssignments(int numWorkers) {
-    HashMap<Integer, Long> taskToCount = new HashMap<>();
+  private Multimap<TaskId, SplitKey> computeNewAssignments(int numWorkers) {
+    HashMap<TaskId, Long> taskToCount = new HashMap<>();
     Set<SplitKey> unassigned = allSplits.keySet();
     assignments.forEach(
         (key, task) -> {
@@ -139,16 +139,16 @@ public class UniformPartitionAssigner implements PartitionAssigner {
             numWorkers,
             (o1, o2) -> {
               if (o1.partitionsAssigned() == o2.partitionsAssigned()) {
-                return o1.task() - o2.task();
+                return o1.task().value() - o2.task().value();
               }
               return Long.signum(o1.partitionsAssigned() - o2.partitionsAssigned());
             });
     // Add each worker to the priority queue with the number of splits they are currently assigned.
     for (int i = 0; i < numWorkers; i++) {
-      queue.add(TaskAndCount.of(i, taskToCount.getOrDefault(i, 0L)));
+      queue.add(TaskAndCount.of(TaskId.of(i), taskToCount.getOrDefault(TaskId.of(i), 0L)));
     }
 
-    Multimap<Integer, SplitKey> proposal = HashMultimap.create();
+    Multimap<TaskId, SplitKey> proposal = HashMultimap.create();
     for (SplitKey split : unassigned) {
       TaskAndCount assignment = queue.poll();
       assert assignment != null;

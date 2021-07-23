@@ -15,20 +15,13 @@
  */
 package com.google.cloud.pubsublite.flink.enumerator;
 
-import com.google.cloud.pubsublite.flink.proto.SplitEnumeratorCheckpoint;
-import com.google.cloud.pubsublite.flink.split.SubscriptionPartitionSplit;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import com.google.auto.value.AutoValue;
 
-interface PartitionAssigner {
+@AutoValue
+public abstract class TaskId {
+  public abstract int value();
 
-  List<SplitEnumeratorCheckpoint.Assignment> checkpoint();
-
-  Map<TaskId, List<SubscriptionPartitionSplit>> assignSplitsForTasks(
-      Collection<TaskId> tasks, int currentParallelism);
-
-  void addSplits(Collection<SubscriptionPartitionSplit> splits);
-
-  Collection<SubscriptionPartitionSplit> listSplits();
+  public static TaskId of(int value) {
+    return new AutoValue_TaskId(value);
+  }
 }

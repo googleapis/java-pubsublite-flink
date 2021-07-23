@@ -57,17 +57,17 @@ public class UniformPartitionAssignerTest {
     SubscriptionPartitionSplit s0 = makeSplit(Partition.of(0));
     SubscriptionPartitionSplit s1 = makeSplit(Partition.of(1));
 
-    Map<Integer, List<SubscriptionPartitionSplit>> assignments;
+    Map<TaskId, List<SubscriptionPartitionSplit>> assignments;
     assigner.addSplits(ImmutableList.of(s0, s1));
-    assignments = assigner.assignSplitsForTasks(ImmutableList.of(0, 1), 2);
+    assignments = assigner.assignSplitsForTasks(ImmutableList.of(TaskId.of(0), TaskId.of(1)), 2);
 
-    assertThat(assignments.get(0)).containsExactly(s0);
-    assertThat(assignments.get(1)).containsExactly(s1);
+    assertThat(assignments.get(TaskId.of(0))).containsExactly(s0);
+    assertThat(assignments.get(TaskId.of(1))).containsExactly(s1);
 
-    assignments = assigner.assignSplitsForTasks(ImmutableList.of(0, 1), 2);
+    assignments = assigner.assignSplitsForTasks(ImmutableList.of(TaskId.of(0), TaskId.of(1)), 2);
 
-    assertThat(assignments.get(0)).isEmpty();
-    assertThat(assignments.get(1)).isEmpty();
+    assertThat(assignments.get(TaskId.of(0))).isEmpty();
+    assertThat(assignments.get(TaskId.of(1))).isEmpty();
   }
 
   @Test
@@ -76,14 +76,14 @@ public class UniformPartitionAssignerTest {
     SubscriptionPartitionSplit s1 = makeSplit(Partition.of(1));
 
     assigner.addSplits(ImmutableList.of(s0, s1));
-    Map<Integer, List<SubscriptionPartitionSplit>> assignments;
+    Map<TaskId, List<SubscriptionPartitionSplit>> assignments;
 
-    assignments = assigner.assignSplitsForTasks(ImmutableList.of(0), 2);
-    assertThat(assignments.get(0)).containsExactly(s0);
+    assignments = assigner.assignSplitsForTasks(ImmutableList.of(TaskId.of(0)), 2);
+    assertThat(assignments.get(TaskId.of(0))).containsExactly(s0);
 
-    assignments = assigner.assignSplitsForTasks(ImmutableList.of(0, 1), 2);
-    assertThat(assignments.get(0)).isEmpty();
-    assertThat(assignments.get(1)).containsExactly(s1);
+    assignments = assigner.assignSplitsForTasks(ImmutableList.of(TaskId.of(0), TaskId.of(1)), 2);
+    assertThat(assignments.get(TaskId.of(0))).isEmpty();
+    assertThat(assignments.get(TaskId.of(1))).containsExactly(s1);
   }
 
   @Test
@@ -92,18 +92,18 @@ public class UniformPartitionAssignerTest {
     SubscriptionPartitionSplit s1 = makeSplit(Partition.of(1));
 
     assigner.addSplits(ImmutableList.of(s0, s1));
-    Map<Integer, List<SubscriptionPartitionSplit>> assignments;
+    Map<TaskId, List<SubscriptionPartitionSplit>> assignments;
 
-    assignments = assigner.assignSplitsForTasks(ImmutableList.of(0), 2);
-    assertThat(assignments.get(0)).containsExactly(s0);
+    assignments = assigner.assignSplitsForTasks(ImmutableList.of(TaskId.of(0)), 2);
+    assertThat(assignments.get(TaskId.of(0))).containsExactly(s0);
 
     List<Assignment> checkpoint = assigner.checkpoint();
 
     assigner = UniformPartitionAssigner.fromCheckpoint(checkpoint);
 
-    assignments = assigner.assignSplitsForTasks(ImmutableList.of(0, 1), 2);
-    assertThat(assignments.get(0)).isEmpty();
-    assertThat(assignments.get(1)).containsExactly(s1);
+    assignments = assigner.assignSplitsForTasks(ImmutableList.of(TaskId.of(0), TaskId.of(1)), 2);
+    assertThat(assignments.get(TaskId.of(0))).isEmpty();
+    assertThat(assignments.get(TaskId.of(1))).containsExactly(s1);
   }
 
   @Test
@@ -116,10 +116,10 @@ public class UniformPartitionAssignerTest {
     assigner.addSplits(ImmutableList.of(s0));
     assigner.addSplits(ImmutableList.of(s1));
 
-    Map<Integer, List<SubscriptionPartitionSplit>> assignments;
-    assignments = assigner.assignSplitsForTasks(ImmutableList.of(0), 1);
+    Map<TaskId, List<SubscriptionPartitionSplit>> assignments;
+    assignments = assigner.assignSplitsForTasks(ImmutableList.of(TaskId.of(0)), 1);
 
-    assertThat(assignments.get(0)).containsExactly(s1);
+    assertThat(assignments.get(TaskId.of(0))).containsExactly(s1);
   }
 
   @Test
@@ -129,20 +129,20 @@ public class UniformPartitionAssignerTest {
         SubscriptionPartitionSplit.create(
             s0.subscriptionPath(), s0.partition(), Offset.of(s0.start().value() + 1));
 
-    Map<Integer, List<SubscriptionPartitionSplit>> assignments;
+    Map<TaskId, List<SubscriptionPartitionSplit>> assignments;
 
     assigner.addSplits(ImmutableList.of(s0));
-    assignments = assigner.assignSplitsForTasks(ImmutableList.of(0), 1);
-    assertThat(assignments.get(0)).containsExactly(s0);
+    assignments = assigner.assignSplitsForTasks(ImmutableList.of(TaskId.of(0)), 1);
+    assertThat(assignments.get(TaskId.of(0))).containsExactly(s0);
 
     assigner.addSplits(ImmutableList.of(s1));
-    assignments = assigner.assignSplitsForTasks(ImmutableList.of(0), 1);
-    assertThat(assignments.get(0)).containsExactly(s1);
+    assignments = assigner.assignSplitsForTasks(ImmutableList.of(TaskId.of(0)), 1);
+    assertThat(assignments.get(TaskId.of(0))).containsExactly(s1);
   }
 
   @Test
   public void testIncrementalAssignmentDistributions() {
-    Map<Integer, List<SubscriptionPartitionSplit>> assignments1, assignments2;
+    Map<TaskId, List<SubscriptionPartitionSplit>> assignments1, assignments2;
     List<SubscriptionPartitionSplit> splits1 = new ArrayList<>(), splits2 = new ArrayList<>();
 
     for (int i = 0; i < 100; i++) {
@@ -150,18 +150,20 @@ public class UniformPartitionAssignerTest {
     }
     assigner.addSplits(splits1);
 
-    assignments1 = assigner.assignSplitsForTasks(ImmutableList.of(0, 1), 2);
-    assertThat(assignments1.get(0)).hasSize(50);
-    assertThat(assignments1.get(1)).hasSize(50);
+    assignments1 = assigner.assignSplitsForTasks(ImmutableList.of(TaskId.of(0), TaskId.of(1)), 2);
+    assertThat(assignments1.get(TaskId.of(0))).hasSize(50);
+    assertThat(assignments1.get(TaskId.of(1))).hasSize(50);
 
     for (int i = 100; i < 300; i++) {
       splits2.add(makeSplit(Partition.of(i)));
     }
 
     assigner.addSplits(splits2);
-    assignments2 = assigner.assignSplitsForTasks(ImmutableList.of(0, 1, 2), 3);
-    assertThat(assignments2.get(0)).hasSize(50);
-    assertThat(assignments2.get(1)).hasSize(50);
-    assertThat(assignments2.get(2)).hasSize(100);
+    assignments2 =
+        assigner.assignSplitsForTasks(
+            ImmutableList.of(TaskId.of(0), TaskId.of(1), TaskId.of(2)), 3);
+    assertThat(assignments2.get(TaskId.of(0))).hasSize(50);
+    assertThat(assignments2.get(TaskId.of(1))).hasSize(50);
+    assertThat(assignments2.get(TaskId.of(2))).hasSize(100);
   }
 }
