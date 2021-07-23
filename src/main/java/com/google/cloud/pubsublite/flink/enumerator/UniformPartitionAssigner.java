@@ -88,8 +88,7 @@ public class UniformPartitionAssigner implements PartitionAssigner {
               SplitEnumeratorCheckpoint.Assignment.newBuilder();
           b.setSplit(split.toProto());
           if (assignments.containsKey(key)) {
-            b.setSubtask(
-                SplitEnumeratorCheckpoint.Subtask.newBuilder().setId(assignments.get(key)));
+            b.setSubtask(b.getSubtaskBuilder().setId(assignments.get(key)));
           }
           splits.add(b.build());
         });
