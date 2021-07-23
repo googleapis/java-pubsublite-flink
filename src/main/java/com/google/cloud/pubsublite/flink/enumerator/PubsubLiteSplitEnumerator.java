@@ -35,7 +35,7 @@ public class PubsubLiteSplitEnumerator
     implements SplitEnumerator<SubscriptionPartitionSplit, SplitEnumeratorCheckpoint> {
 
   private static final Logger LOG = LoggerFactory.getLogger(PubsubLiteSplitEnumerator.class);
-  private static final int PARTITION_DISCOVERY_INTERVAL = (int) Duration.ofMinutes(1).toMillis();
+  private static final Duration PARTITION_DISCOVERY_INTERVAL = Duration.ofMinutes(1);
   private final SplitEnumeratorContext<SubscriptionPartitionSplit> context;
   private final PartitionAssigner assigner;
   private final SplitDiscovery discovery;
@@ -60,7 +60,7 @@ public class PubsubLiteSplitEnumerator
             this::discoverNewSplits,
             this::handlePartitionSplitDiscovery,
             0,
-            PARTITION_DISCOVERY_INTERVAL);
+            PARTITION_DISCOVERY_INTERVAL.toMillis());
         break;
       case BOUNDED:
         if (assigner.listSplits().isEmpty()) {
