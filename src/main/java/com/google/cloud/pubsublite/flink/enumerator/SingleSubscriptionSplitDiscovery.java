@@ -25,6 +25,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 public class SingleSubscriptionSplitDiscovery implements SplitDiscovery {
   private final AdminClient adminClient;
@@ -62,7 +64,7 @@ public class SingleSubscriptionSplitDiscovery implements SplitDiscovery {
       CursorClient cursorClient) {
     SubscriptionPath subscriptionPath = SubscriptionPath.parse(proto.getSubscription());
     TopicPath topicPath = TopicPath.parse(proto.getTopic());
-    long partitionCount = 0;
+    Set<Long> partitions = new TreeSet<>();
     for (SubscriptionPartitionSplit s : currentSplits) {
       if (!s.subscriptionPath().equals(subscriptionPath)) {
         throw new IllegalStateException(
@@ -71,36 +73,37 @@ public class SingleSubscriptionSplitDiscovery implements SplitDiscovery {
                 + " but current splits contains a split from subscription "
                 + s);
       }
-      partitionCount = Math.max(partitionCount, s.partition().value() + 1);
+      partitions.add(s.partition().value());
+    }
+    long partitionCount = partitions.size();
+    for (long p = 0; p < partitions.size(); p++) {
+      if (!partitions.contains(p)) {
+        throw new IllegalStateException(
+            "Split set is not continuous, missing split for partition " + p + " " + currentSplits);
+      }
     }
     return new SingleSubscriptionSplitDiscovery(
         adminClient, cursorClient, topicPath, subscriptionPath, partitionCount);
   }
 
-  public synchronized List<SubscriptionPartitionSplit> discoverSplits() throws ApiException {
-    List<SubscriptionPartitionSplit> newSplits = new ArrayList<>();
-    long newPartitionCount;
+  public synchronized List<SubscriptionPartitionSplit> discoverNewSplits() throws ApiException {
     try {
-      newPartitionCount = adminClient.getTopicPartitionCount(topicPath).get();
-    } catch (Throwable t) {
-      throw ExtractStatus.toCanonical(t).underlying;
-    }
-    if (newPartitionCount == partitionCount) {
+      List<SubscriptionPartitionSplit> newSplits = new ArrayList<>();
+      long newPartitionCount = adminClient.getTopicPartitionCount(topicPath).get();
+      if (newPartitionCount == partitionCount) {
+        return newSplits;
+      }
+      Map<Partition, Offset> cursorMap = cursorClient.listPartitionCursors(subscriptionPath).get();
+      for (long p = partitionCount; p < newPartitionCount; p++) {
+        Partition partition = Partition.of(p);
+        Offset offset = cursorMap.getOrDefault(partition, Offset.of(0));
+        newSplits.add(SubscriptionPartitionSplit.create(subscriptionPath, partition, offset));
+      }
+      partitionCount = newPartitionCount;
       return newSplits;
-    }
-    Map<Partition, Offset> cursorMap;
-    try {
-      cursorMap = cursorClient.listPartitionCursors(subscriptionPath).get();
     } catch (Throwable t) {
       throw ExtractStatus.toCanonical(t).underlying;
     }
-    for (long p = partitionCount; p < newPartitionCount; p++) {
-      Partition partition = Partition.of(p);
-      Offset offset = cursorMap.getOrDefault(partition, Offset.of(0));
-      newSplits.add(SubscriptionPartitionSplit.create(subscriptionPath, partition, offset));
-    }
-    partitionCount = newPartitionCount;
-    return newSplits;
   }
 
   public synchronized SplitEnumeratorCheckpoint.Discovery checkpoint() {

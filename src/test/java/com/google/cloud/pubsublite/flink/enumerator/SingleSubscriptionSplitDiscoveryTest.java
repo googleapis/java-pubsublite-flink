@@ -63,7 +63,7 @@ public class SingleSubscriptionSplitDiscoveryTest {
         .thenReturn(ApiFutures.immediateFuture(2L));
     when(mockCursorClient.listPartitionCursors(exampleSubscriptionPath()))
         .thenReturn(ApiFutures.immediateFuture(ImmutableMap.of(Partition.of(1), Offset.of(2))));
-    List<SubscriptionPartitionSplit> splits = discovery.discoverSplits();
+    List<SubscriptionPartitionSplit> splits = discovery.discoverNewSplits();
     assertThat(splits)
         .containsExactly(
             SubscriptionPartitionSplit.create(
@@ -80,9 +80,9 @@ public class SingleSubscriptionSplitDiscoveryTest {
         .thenReturn(ApiFutures.immediateFuture(3L));
     when(mockCursorClient.listPartitionCursors(exampleSubscriptionPath()))
         .thenReturn(ApiFutures.immediateFuture(ImmutableMap.of(Partition.of(1), Offset.of(2))));
-    assertThat(discovery.discoverSplits()).hasSize(2);
-    assertThat(discovery.discoverSplits()).hasSize(1);
-    assertThat(discovery.discoverSplits()).hasSize(0);
+    assertThat(discovery.discoverNewSplits()).hasSize(2);
+    assertThat(discovery.discoverNewSplits()).hasSize(1);
+    assertThat(discovery.discoverNewSplits()).hasSize(0);
   }
 
   @Test
@@ -91,7 +91,7 @@ public class SingleSubscriptionSplitDiscoveryTest {
         .thenReturn(
             ApiFutures.immediateFailedFuture(
                 new CheckedApiException("", StatusCode.Code.INTERNAL)));
-    assertThrows(ApiException.class, () -> discovery.discoverSplits());
+    assertThrows(ApiException.class, () -> discovery.discoverNewSplits());
   }
 
   @Test
@@ -102,7 +102,7 @@ public class SingleSubscriptionSplitDiscoveryTest {
         .thenReturn(
             ApiFutures.immediateFailedFuture(
                 new CheckedApiException("", StatusCode.Code.INTERNAL)));
-    assertThrows(ApiException.class, () -> discovery.discoverSplits());
+    assertThrows(ApiException.class, () -> discovery.discoverNewSplits());
   }
 
   @Test
@@ -119,6 +119,10 @@ public class SingleSubscriptionSplitDiscoveryTest {
     List<SubscriptionPartitionSplit> splits =
         ImmutableList.of(
             SubscriptionPartitionSplit.create(
+                exampleSubscriptionPath(), Partition.of(0), Offset.of(4)),
+            SubscriptionPartitionSplit.create(
+                exampleSubscriptionPath(), Partition.of(1), Offset.of(4)),
+            SubscriptionPartitionSplit.create(
                 exampleSubscriptionPath(), Partition.of(2), Offset.of(4)));
     SplitDiscovery restored =
         SingleSubscriptionSplitDiscovery.fromCheckpoint(
@@ -128,7 +132,7 @@ public class SingleSubscriptionSplitDiscoveryTest {
         .thenReturn(ApiFutures.immediateFuture(4L));
     when(mockCursorClient.listPartitionCursors(exampleSubscriptionPath()))
         .thenReturn(ApiFutures.immediateFuture(ImmutableMap.of(Partition.of(3), Offset.of(2))));
-    assertThat(restored.discoverSplits()).hasSize(1);
+    assertThat(restored.discoverNewSplits()).hasSize(1);
   }
 
   @Test
@@ -139,8 +143,24 @@ public class SingleSubscriptionSplitDiscoveryTest {
         ImmutableList.of(
             SubscriptionPartitionSplit.create(
                 SubscriptionPath.parse(exampleSubscriptionPath().toString() + "-other"),
-                Partition.of(2),
+                Partition.of(0),
                 Offset.of(4)));
+    assertThrows(
+        IllegalStateException.class,
+        () -> {
+          SingleSubscriptionSplitDiscovery.fromCheckpoint(
+              proto, splits, mockAdminClient, mockCursorClient);
+        });
+  }
+
+  @Test
+  public void testCheckpointRestore_NonContinuousPartitions() {
+    SplitEnumeratorCheckpoint.Discovery proto = discovery.checkpoint();
+
+    List<SubscriptionPartitionSplit> splits =
+        ImmutableList.of(
+            SubscriptionPartitionSplit.create(
+                exampleSubscriptionPath(), Partition.of(1), Offset.of(4)));
     assertThrows(
         IllegalStateException.class,
         () -> {
