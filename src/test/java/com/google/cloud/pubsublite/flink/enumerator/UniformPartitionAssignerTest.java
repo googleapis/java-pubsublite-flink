@@ -18,6 +18,7 @@ package com.google.cloud.pubsublite.flink.enumerator;
 import static com.google.cloud.pubsublite.internal.testing.UnitTestExamples.exampleOffset;
 import static com.google.cloud.pubsublite.internal.testing.UnitTestExamples.exampleSubscriptionPath;
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import com.google.cloud.pubsublite.Offset;
 import com.google.cloud.pubsublite.Partition;
@@ -50,6 +51,15 @@ public class UniformPartitionAssignerTest {
 
     assigner.addSplits(ImmutableList.of(s0, s1, s2));
     assertThat(assigner.listSplits()).containsExactly(s0, s1, s2);
+  }
+
+  @Test
+  public void testInvalidParallelism() {
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> {
+          assigner.assignSplitsForTasks(ImmutableList.of(), 0);
+        });
   }
 
   @Test
@@ -162,6 +172,8 @@ public class UniformPartitionAssignerTest {
     assignments2 =
         assigner.assignSplitsForTasks(
             ImmutableList.of(TaskId.of(0), TaskId.of(1), TaskId.of(2)), 3);
+    // Since task three has no assignments from the previous round, in order to reach a uniform
+    // distribution we will assign fifty more splits to it than to the other tasks.
     assertThat(assignments2.get(TaskId.of(0))).hasSize(50);
     assertThat(assignments2.get(TaskId.of(1))).hasSize(50);
     assertThat(assignments2.get(TaskId.of(2))).hasSize(100);

@@ -20,7 +20,9 @@ import com.google.cloud.pubsublite.Partition;
 import com.google.cloud.pubsublite.SubscriptionPath;
 import com.google.cloud.pubsublite.flink.proto.SplitEnumeratorCheckpoint;
 import com.google.cloud.pubsublite.flink.split.SubscriptionPartitionSplit;
-import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -28,7 +30,7 @@ import java.util.stream.Collectors;
 public class UniformPartitionAssigner implements PartitionAssigner {
 
   private final HashMap<SplitKey, TaskId> assignments;
-  private final HashMap<SplitKey, SubscriptionPartitionSplit> allSplits;
+  private final LinkedHashMap<SplitKey, SubscriptionPartitionSplit> allSplits;
 
   @AutoValue
   abstract static class SplitKey {
@@ -56,17 +58,17 @@ public class UniformPartitionAssigner implements PartitionAssigner {
   private UniformPartitionAssigner(
       Map<SplitKey, TaskId> assignments, Map<SplitKey, SubscriptionPartitionSplit> splits) {
     this.assignments = new HashMap<>(assignments);
-    this.allSplits = new HashMap<>(splits);
+    this.allSplits = new LinkedHashMap<>(splits);
   }
 
   static UniformPartitionAssigner create() {
-    return new UniformPartitionAssigner(new HashMap<>(), new HashMap<>());
+    return new UniformPartitionAssigner(ImmutableMap.of(), ImmutableMap.of());
   }
 
   static UniformPartitionAssigner fromCheckpoint(
       Collection<SplitEnumeratorCheckpoint.Assignment> assignments) {
-    Map<SplitKey, TaskId> enactedAssignments = new HashMap<>();
-    Map<SplitKey, SubscriptionPartitionSplit> splits = new HashMap<>();
+    ImmutableMap.Builder<SplitKey, TaskId> enactedAssignments = ImmutableMap.builder();
+    ImmutableMap.Builder<SplitKey, SubscriptionPartitionSplit> splits = ImmutableMap.builder();
     assignments.forEach(
         assignment -> {
           SubscriptionPartitionSplit split =
@@ -77,11 +79,11 @@ public class UniformPartitionAssigner implements PartitionAssigner {
             enactedAssignments.put(key, TaskId.of(assignment.getSubtask().getId()));
           }
         });
-    return new UniformPartitionAssigner(enactedAssignments, splits);
+    return new UniformPartitionAssigner(enactedAssignments.build(), splits.build());
   }
 
   public List<SplitEnumeratorCheckpoint.Assignment> checkpoint() {
-    List<SplitEnumeratorCheckpoint.Assignment> splits = new ArrayList<>();
+    ImmutableList.Builder<SplitEnumeratorCheckpoint.Assignment> splits = ImmutableList.builder();
     allSplits.forEach(
         (key, split) -> {
           SplitEnumeratorCheckpoint.Assignment.Builder b =
@@ -92,13 +94,17 @@ public class UniformPartitionAssigner implements PartitionAssigner {
           }
           splits.add(b.build());
         });
-    return splits;
+    return splits.build();
   }
 
   public Map<TaskId, List<SubscriptionPartitionSplit>> assignSplitsForTasks(
       Collection<TaskId> tasks, int currentParallelism) {
+    if (currentParallelism < 1) {
+      throw new IllegalArgumentException("parallelism must be at least one");
+    }
     Multimap<TaskId, SplitKey> proposed = computeNewAssignments(currentParallelism);
-    Map<TaskId, List<SubscriptionPartitionSplit>> newAssignments = new HashMap<>();
+    ImmutableMap.Builder<TaskId, List<SubscriptionPartitionSplit>> newAssignments =
+        ImmutableMap.builder();
     tasks.forEach(
         subtaskId -> {
           Collection<SplitKey> toAssign = proposed.get(subtaskId);
@@ -108,7 +114,7 @@ public class UniformPartitionAssigner implements PartitionAssigner {
           newAssignments.put(
               subtaskId, toAssign.stream().map(allSplits::get).collect(Collectors.toList()));
         });
-    return newAssignments;
+    return newAssignments.build();
   }
 
   public void addSplits(Collection<SubscriptionPartitionSplit> splits) {
@@ -139,22 +145,22 @@ public class UniformPartitionAssigner implements PartitionAssigner {
             numWorkers,
             (o1, o2) -> {
               if (o1.partitionsAssigned() == o2.partitionsAssigned()) {
-                return o1.task().value() - o2.task().value();
+                return Integer.compare(o1.task().value(), o2.task().value());
               }
-              return Long.signum(o1.partitionsAssigned() - o2.partitionsAssigned());
+              return Long.compare(o1.partitionsAssigned(), o2.partitionsAssigned());
             });
     // Add each worker to the priority queue with the number of splits they are currently assigned.
     for (int i = 0; i < numWorkers; i++) {
       queue.add(TaskAndCount.of(TaskId.of(i), taskToCount.getOrDefault(TaskId.of(i), 0L)));
     }
 
-    Multimap<TaskId, SplitKey> proposal = HashMultimap.create();
+    ImmutableListMultimap.Builder<TaskId, SplitKey> proposal = ImmutableListMultimap.builder();
     for (SplitKey split : unassigned) {
       TaskAndCount assignment = queue.poll();
       assert assignment != null;
       proposal.put(assignment.task(), split);
       queue.add(TaskAndCount.of(assignment.task(), assignment.partitionsAssigned() + 1));
     }
-    return proposal;
+    return proposal.build();
   }
 }
