@@ -21,6 +21,8 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.apache.flink.api.connector.source.Boundedness;
 import org.apache.flink.api.connector.source.SplitEnumerator;
@@ -55,15 +57,14 @@ public class PubsubLiteSplitEnumerator
     switch (boundedness) {
       case CONTINUOUS_UNBOUNDED:
         this.context.callAsync(
-            this::discoverPartitionSplits,
+            this::discoverNewSplits,
             this::handlePartitionSplitDiscovery,
             0,
             PARTITION_DISCOVERY_INTERVAL);
         break;
       case BOUNDED:
         if (assigner.listSplits().isEmpty()) {
-          this.context.callAsync(
-              this::discoverPartitionSplits, this::handlePartitionSplitDiscovery);
+          this.context.callAsync(this::discoverNewSplits, this::handlePartitionSplitDiscovery);
         }
         break;
     }
@@ -103,8 +104,8 @@ public class PubsubLiteSplitEnumerator
     }
   }
 
-  private List<SubscriptionPartitionSplit> discoverPartitionSplits() {
-    return discovery.discoverSplits();
+  private List<SubscriptionPartitionSplit> discoverNewSplits() {
+    return discovery.discoverNewSplits();
   }
 
   private void handlePartitionSplitDiscovery(List<SubscriptionPartitionSplit> splits, Throwable t) {
@@ -124,18 +125,21 @@ public class PubsubLiteSplitEnumerator
   }
 
   private void updateAssignmentsForRegisteredReaders() {
-    Map<Integer, List<SubscriptionPartitionSplit>> assignment =
-        assigner.assignSplitsForTasks(
-            context.registeredReaders().keySet(), context.currentParallelism());
+    List<TaskId> readers =
+        context.registeredReaders().keySet().stream().map(TaskId::of).collect(Collectors.toList());
+    Map<TaskId, List<SubscriptionPartitionSplit>> assignment =
+        assigner.assignSplitsForTasks(readers, context.currentParallelism());
     LOG.info("Assigning splits: {}", assignment);
-    context.assignSplits(new SplitsAssignment<>(assignment));
+    context.assignSplits(
+        new SplitsAssignment<>(
+            assignment.entrySet().stream()
+                .collect(Collectors.toMap(e -> e.getKey().value(), Entry::getValue))));
 
     // If this is a bounded split enumerator, and we have discovered splits, inform any task which
-    // received
-    // and assignment, that this assignment will be the last.
+    // received an assignment that this assignment will be the last.
     if (boundedness == Boundedness.BOUNDED && !assigner.listSplits().isEmpty()) {
-      for (Integer task : assignment.keySet()) {
-        context.signalNoMoreSplits(task);
+      for (TaskId task : assignment.keySet()) {
+        context.signalNoMoreSplits(task.value());
       }
     }
   }

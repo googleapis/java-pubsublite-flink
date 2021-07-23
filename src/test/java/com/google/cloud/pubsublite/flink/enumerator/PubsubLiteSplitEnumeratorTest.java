@@ -84,7 +84,10 @@ public class PubsubLiteSplitEnumeratorTest {
     return true;
   }
 
-  public void handleFinishedTasks() throws Exception {
+  // The test context contains a manually triggered executor service. This helper iterates over
+  // all tasks which have been scheduled by the executor service and throws any exceptions they
+  // encountered.
+  public void throwAnyTaskExceptions() throws Exception {
     for (ScheduledFuture<?> task : testContext.getExecutorService().getScheduledTasks()) {
       if (task.isDone()) {
         task.get();
@@ -111,7 +114,7 @@ public class PubsubLiteSplitEnumeratorTest {
     PubsubLiteSplitEnumerator enumerator = createEnumerator(Boundedness.CONTINUOUS_UNBOUNDED);
     enumerator.start();
 
-    when(discovery.discoverSplits()).thenReturn(ImmutableList.of());
+    when(discovery.discoverNewSplits()).thenReturn(ImmutableList.of());
     testContext.triggerAllActions();
 
     assertThat(toMap(testContext.getSplitAssignments())).isEmpty();
@@ -122,12 +125,12 @@ public class PubsubLiteSplitEnumeratorTest {
     PubsubLiteSplitEnumerator enumerator = createEnumerator(Boundedness.CONTINUOUS_UNBOUNDED);
     enumerator.start();
 
-    when(discovery.discoverSplits()).thenThrow(new RuntimeException("error"));
+    when(discovery.discoverNewSplits()).thenThrow(new RuntimeException("error"));
     testContext.triggerAllActions();
 
     assertThat(toMap(testContext.getSplitAssignments())).isEmpty();
 
-    assertThrows(ExecutionException.class, this::handleFinishedTasks);
+    assertThrows(ExecutionException.class, this::throwAnyTaskExceptions);
   }
 
   @Test
@@ -137,15 +140,15 @@ public class PubsubLiteSplitEnumeratorTest {
 
     SubscriptionPartitionSplit s0 = makeSplit(Partition.of(0));
 
-    when(discovery.discoverSplits()).thenReturn(ImmutableList.of(s0));
+    when(discovery.discoverNewSplits()).thenReturn(ImmutableList.of(s0));
     testContext.triggerAllActions();
 
-    when(discovery.discoverSplits()).thenThrow(new RuntimeException("error"));
+    when(discovery.discoverNewSplits()).thenThrow(new RuntimeException("error"));
     testContext.triggerAllActions();
 
     assertThat(toMap(testContext.getSplitAssignments())).isEmpty();
 
-    handleFinishedTasks();
+    throwAnyTaskExceptions();
   }
 
   @Test
@@ -167,14 +170,14 @@ public class PubsubLiteSplitEnumeratorTest {
     SubscriptionPartitionSplit s1 = makeSplit(Partition.of(1));
 
     testContext.registerReader(0, "h0");
-    when(discovery.discoverSplits()).thenReturn(ImmutableList.of(s0));
+    when(discovery.discoverNewSplits()).thenReturn(ImmutableList.of(s0));
     testContext.triggerAllActions();
 
     assertThat(toMap(testContext.getSplitAssignments())).containsExactly(0, s0);
     assertThat(anyFinished(testContext.getSplitAssignments())).isFalse();
 
     testContext.registerReader(1, "h1");
-    when(discovery.discoverSplits()).thenReturn(ImmutableList.of(s1));
+    when(discovery.discoverNewSplits()).thenReturn(ImmutableList.of(s1));
     testContext.triggerAllActions();
 
     assertThat(toMap(testContext.getSplitAssignments())).containsExactly(0, s0, 1, s1);
@@ -189,14 +192,14 @@ public class PubsubLiteSplitEnumeratorTest {
     SubscriptionPartitionSplit s0 = makeSplit(Partition.of(0));
     SubscriptionPartitionSplit s1 = makeSplit(Partition.of(1));
 
-    when(discovery.discoverSplits()).thenReturn(ImmutableList.of(s0));
+    when(discovery.discoverNewSplits()).thenReturn(ImmutableList.of(s0));
     testContext.triggerAllActions();
 
     assertThat(testContext.getSplitAssignments()).isEmpty();
 
     testContext.registerReader(0, "h0");
     testContext.registerReader(1, "h1");
-    when(discovery.discoverSplits()).thenReturn(ImmutableList.of(s1));
+    when(discovery.discoverNewSplits()).thenReturn(ImmutableList.of(s1));
     testContext.triggerAllActions();
 
     assertThat(toMap(testContext.getSplitAssignments())).containsExactly(0, s0, 1, s1);
@@ -210,7 +213,7 @@ public class PubsubLiteSplitEnumeratorTest {
 
     SubscriptionPartitionSplit s0 = makeSplit(Partition.of(0));
 
-    when(discovery.discoverSplits()).thenReturn(ImmutableList.of(s0));
+    when(discovery.discoverNewSplits()).thenReturn(ImmutableList.of(s0));
     testContext.triggerAllActions();
     assertThat(testContext.getSplitAssignments()).isEmpty();
 
@@ -241,7 +244,7 @@ public class PubsubLiteSplitEnumeratorTest {
     SubscriptionPartitionSplit s0 = makeSplit(Partition.of(0));
 
     testContext.registerReader(0, "h0");
-    when(discovery.discoverSplits()).thenReturn(ImmutableList.of(s0));
+    when(discovery.discoverNewSplits()).thenReturn(ImmutableList.of(s0));
     testContext.triggerAllActions();
 
     reset(discovery);
@@ -259,7 +262,7 @@ public class PubsubLiteSplitEnumeratorTest {
 
     SubscriptionPartitionSplit s0 = makeSplit(Partition.of(0));
 
-    when(discovery.discoverSplits()).thenReturn(ImmutableList.of(s0));
+    when(discovery.discoverNewSplits()).thenReturn(ImmutableList.of(s0));
     testContext.triggerAllActions();
     assertThat(testContext.getSplitAssignments()).isEmpty();
 
