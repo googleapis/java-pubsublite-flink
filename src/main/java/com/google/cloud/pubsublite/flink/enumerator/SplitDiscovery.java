@@ -20,7 +20,7 @@ import com.google.cloud.pubsublite.flink.proto.SplitEnumeratorCheckpoint;
 import com.google.cloud.pubsublite.flink.split.SubscriptionPartitionSplit;
 import java.util.List;
 
-interface SplitDiscovery extends AutoCloseable {
+public interface SplitDiscovery extends AutoCloseable {
   List<SubscriptionPartitionSplit> discoverNewSplits() throws ApiException;
 
   SplitEnumeratorCheckpoint.Discovery checkpoint();

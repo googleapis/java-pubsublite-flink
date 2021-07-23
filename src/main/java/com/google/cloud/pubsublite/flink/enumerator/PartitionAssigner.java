@@ -21,7 +21,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-interface PartitionAssigner {
+public interface PartitionAssigner {
 
   List<SplitEnumeratorCheckpoint.Assignment> checkpoint();
 

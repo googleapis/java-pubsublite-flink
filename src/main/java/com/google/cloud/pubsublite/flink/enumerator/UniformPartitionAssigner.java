@@ -61,11 +61,11 @@ public class UniformPartitionAssigner implements PartitionAssigner {
     this.allSplits = new LinkedHashMap<>(splits);
   }
 
-  static UniformPartitionAssigner create() {
+  public static UniformPartitionAssigner create() {
     return new UniformPartitionAssigner(ImmutableMap.of(), ImmutableMap.of());
   }
 
-  static UniformPartitionAssigner fromCheckpoint(
+  public static UniformPartitionAssigner fromCheckpoint(
       Collection<SplitEnumeratorCheckpoint.Assignment> assignments) {
     ImmutableMap.Builder<SplitKey, TaskId> enactedAssignments = ImmutableMap.builder();
     ImmutableMap.Builder<SplitKey, SubscriptionPartitionSplit> splits = ImmutableMap.builder();

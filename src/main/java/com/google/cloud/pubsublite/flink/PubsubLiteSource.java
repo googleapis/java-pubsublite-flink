@@ -17,9 +17,14 @@ package com.google.cloud.pubsublite.flink;
 
 import com.google.cloud.pubsublite.AdminClient;
 import com.google.cloud.pubsublite.TopicPath;
+import com.google.cloud.pubsublite.flink.enumerator.PartitionAssigner;
 import com.google.cloud.pubsublite.flink.enumerator.PubsubLiteSplitEnumerator;
-import com.google.cloud.pubsublite.flink.enumerator.PubsubLiteSplitEnumeratorProtoSerializer;
-import com.google.cloud.pubsublite.flink.proto.PubsubLiteSplitEnumeratorProto;
+import com.google.cloud.pubsublite.flink.enumerator.SingleSubscriptionSplitDiscovery;
+import com.google.cloud.pubsublite.flink.enumerator.SplitDiscovery;
+import com.google.cloud.pubsublite.flink.enumerator.SplitEnumeratorCheckpointSerializer;
+import com.google.cloud.pubsublite.flink.enumerator.UniformPartitionAssigner;
+import com.google.cloud.pubsublite.flink.proto.SplitEnumeratorCheckpoint;
+import com.google.cloud.pubsublite.flink.reader.PubsubLiteRecordEmitter;
 import com.google.cloud.pubsublite.flink.reader.PubsubLiteSourceReader;
 import com.google.cloud.pubsublite.flink.split.SubscriptionPartitionSplit;
 import com.google.cloud.pubsublite.flink.split.SubscriptionPartitionSplitSerializer;
@@ -34,7 +39,7 @@ import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.util.UserCodeClassLoader;
 
 public class PubsubLiteSource<OUT>
-    implements Source<OUT, SubscriptionPartitionSplit, PubsubLiteSplitEnumeratorProto>,
+    implements Source<OUT, SubscriptionPartitionSplit, SplitEnumeratorCheckpoint>,
         ResultTypeQueryable<OUT> {
   private final PubsubLiteSourceSettings<OUT> settings;
 
@@ -64,6 +69,7 @@ public class PubsubLiteSource<OUT>
           }
         });
     return new PubsubLiteSourceReader<>(
+        new PubsubLiteRecordEmitter<>(),
         settings.getCursorCommitter(),
         settings.getSplitReaderSupplier(),
         new Configuration(),
@@ -71,8 +77,8 @@ public class PubsubLiteSource<OUT>
   }
 
   @Override
-  public SplitEnumerator<SubscriptionPartitionSplit, PubsubLiteSplitEnumeratorProto>
-      createEnumerator(SplitEnumeratorContext<SubscriptionPartitionSplit> enumContext) {
+  public SplitEnumerator<SubscriptionPartitionSplit, SplitEnumeratorCheckpoint> createEnumerator(
+      SplitEnumeratorContext<SubscriptionPartitionSplit> enumContext) {
     TopicPath topic;
     try (AdminClient adminClient = settings.getAdminClient()) {
       topic =
@@ -83,24 +89,28 @@ public class PubsubLiteSource<OUT>
     }
     return new PubsubLiteSplitEnumerator(
         enumContext,
-        topic,
-        settings.subscriptionPath(),
-        settings.getAdminClient(),
-        settings.getCursorClient(),
-        Boundedness.CONTINUOUS_UNBOUNDED);
+        UniformPartitionAssigner.create(),
+        SingleSubscriptionSplitDiscovery.create(
+            settings.getAdminClient(),
+            settings.getCursorClient(),
+            topic,
+            settings.subscriptionPath()),
+        settings.boundedness());
   }
 
   @Override
-  public SplitEnumerator<SubscriptionPartitionSplit, PubsubLiteSplitEnumeratorProto>
-      restoreEnumerator(
-          SplitEnumeratorContext<SubscriptionPartitionSplit> enumContext,
-          PubsubLiteSplitEnumeratorProto checkpoint) {
-    return new PubsubLiteSplitEnumerator(
-        enumContext,
-        checkpoint,
-        settings.getAdminClient(),
-        settings.getCursorClient(),
-        Boundedness.CONTINUOUS_UNBOUNDED);
+  public SplitEnumerator<SubscriptionPartitionSplit, SplitEnumeratorCheckpoint> restoreEnumerator(
+      SplitEnumeratorContext<SubscriptionPartitionSplit> enumContext,
+      SplitEnumeratorCheckpoint checkpoint) {
+    PartitionAssigner assigner =
+        UniformPartitionAssigner.fromCheckpoint(checkpoint.getAssignmentsList());
+    SplitDiscovery discovery =
+        SingleSubscriptionSplitDiscovery.fromCheckpoint(
+            checkpoint.getDiscovery(),
+            assigner.listSplits(),
+            settings.getAdminClient(),
+            settings.getCursorClient());
+    return new PubsubLiteSplitEnumerator(enumContext, assigner, discovery, settings.boundedness());
   }
 
   @Override
@@ -109,9 +119,8 @@ public class PubsubLiteSource<OUT>
   }
 
   @Override
-  public SimpleVersionedSerializer<PubsubLiteSplitEnumeratorProto>
-      getEnumeratorCheckpointSerializer() {
-    return new PubsubLiteSplitEnumeratorProtoSerializer();
+  public SimpleVersionedSerializer<SplitEnumeratorCheckpoint> getEnumeratorCheckpointSerializer() {
+    return new SplitEnumeratorCheckpointSerializer();
   }
 
   @Override
