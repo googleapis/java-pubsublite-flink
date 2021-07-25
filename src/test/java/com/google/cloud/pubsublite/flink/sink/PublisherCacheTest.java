@@ -16,40 +16,25 @@
 package com.google.cloud.pubsublite.flink.sink;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.api.core.AbstractApiService;
 import com.google.api.core.ApiService.State;
 import com.google.cloud.pubsublite.MessageMetadata;
 import com.google.cloud.pubsublite.internal.Publisher;
+import com.google.cloud.pubsublite.internal.testing.FakeApiService;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PublisherCacheTest {
-  abstract static class FakePublisher extends AbstractApiService
-      implements Publisher<MessageMetadata> {
-
-    @Override
-    protected void doStart() {
-      notifyStarted();
-    }
-
-    @Override
-    protected void doStop() {
-      notifyStopped();
-    }
-
-    public void fail() {
-      notifyFailed(new RuntimeException("failure"));
-    }
-  }
+  abstract static class FakePublisher extends FakeApiService
+      implements Publisher<MessageMetadata> {}
 
   @Mock PublisherCache.PublisherFactory<String> mockFactory;
   PublisherCache<String> cache;
@@ -61,7 +46,7 @@ public class PublisherCacheTest {
 
   @Test
   public void testPublisherStarted() {
-    FakePublisher pub = Mockito.spy(FakePublisher.class);
+    FakePublisher pub = spy(FakePublisher.class);
     when(mockFactory.New("key")).thenReturn(pub);
     assertThat(cache.get("key")).isEqualTo(pub);
     assertThat(pub.state()).isEqualTo(State.RUNNING);
@@ -69,7 +54,7 @@ public class PublisherCacheTest {
 
   @Test
   public void testPublisherCached() {
-    FakePublisher pub = Mockito.spy(FakePublisher.class);
+    FakePublisher pub = spy(FakePublisher.class);
     when(mockFactory.New("key")).thenReturn(pub);
     assertThat(cache.get("key")).isEqualTo(pub);
     assertThat(cache.get("key")).isEqualTo(pub);
@@ -78,17 +63,17 @@ public class PublisherCacheTest {
 
   @Test
   public void testFailedPublisherEvicted() {
-    FakePublisher pub1 = Mockito.spy(FakePublisher.class);
-    FakePublisher pub2 = Mockito.spy(FakePublisher.class);
+    FakePublisher pub1 = spy(FakePublisher.class);
+    FakePublisher pub2 = spy(FakePublisher.class);
     when(mockFactory.New("key")).thenReturn(pub1).thenReturn(pub2);
     assertThat(cache.get("key")).isEqualTo(pub1);
-    pub1.fail();
+    pub1.fail(new RuntimeException("error"));
     assertThat(cache.get("key")).isEqualTo(pub2);
   }
 
   @Test
   public void testClose() {
-    FakePublisher pub1 = Mockito.spy(FakePublisher.class);
+    FakePublisher pub1 = spy(FakePublisher.class);
     when(mockFactory.New("key")).thenReturn(pub1);
     assertThat(cache.get("key")).isEqualTo(pub1);
     cache.close();
@@ -97,7 +82,7 @@ public class PublisherCacheTest {
 
   @Test
   public void testSet() {
-    FakePublisher pub = Mockito.spy(FakePublisher.class);
+    FakePublisher pub = spy(FakePublisher.class);
     cache.set("key", pub);
     assertThat(cache.get("key")).isEqualTo(pub);
   }
