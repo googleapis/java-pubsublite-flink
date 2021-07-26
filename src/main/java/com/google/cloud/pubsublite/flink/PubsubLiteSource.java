@@ -9,7 +9,7 @@
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * WITHOutputT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
@@ -38,24 +38,24 @@ import org.apache.flink.core.io.SimpleVersionedSerializer;
 import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.util.UserCodeClassLoader;
 
-public class PubsubLiteSource<OUT>
-    implements Source<OUT, SubscriptionPartitionSplit, SplitEnumeratorCheckpoint>,
-        ResultTypeQueryable<OUT> {
-  private final PubsubLiteSourceSettings<OUT> settings;
+public class PubsubLiteSource<OutputT>
+    implements Source<OutputT, SubscriptionPartitionSplit, SplitEnumeratorCheckpoint>,
+        ResultTypeQueryable<OutputT> {
+  private final PubsubLiteSourceSettings<OutputT> settings;
 
-  public PubsubLiteSource(PubsubLiteSourceSettings<OUT> settings) {
+  public PubsubLiteSource(PubsubLiteSourceSettings<OutputT> settings) {
     this.settings = settings;
   }
 
   @Override
   public Boundedness getBoundedness() {
-    return null;
+    return settings.boundedness();
   }
 
   @Override
-  public SourceReader<OUT, SubscriptionPartitionSplit> createReader(
+  public SourceReader<OutputT, SubscriptionPartitionSplit> createReader(
       SourceReaderContext readerContext) throws Exception {
-    PubsubLiteDeserializationSchema<OUT> schema = settings.deserializationSchema();
+    PubsubLiteDeserializationSchema<OutputT> schema = settings.deserializationSchema();
     schema.open(
         new DeserializationSchema.InitializationContext() {
           @Override
@@ -124,7 +124,7 @@ public class PubsubLiteSource<OUT>
   }
 
   @Override
-  public TypeInformation<OUT> getProducedType() {
+  public TypeInformation<OutputT> getProducedType() {
     return settings.deserializationSchema().getProducedType();
   }
 }

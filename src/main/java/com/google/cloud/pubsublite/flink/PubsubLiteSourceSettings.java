@@ -9,7 +9,7 @@
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * WITHOutputT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
@@ -26,6 +26,7 @@ import com.google.auto.value.AutoValue;
 import com.google.cloud.pubsublite.AdminClient;
 import com.google.cloud.pubsublite.AdminClientSettings;
 import com.google.cloud.pubsublite.Partition;
+import com.google.cloud.pubsublite.SequencedMessage;
 import com.google.cloud.pubsublite.SubscriptionPath;
 import com.google.cloud.pubsublite.cloudpubsub.FlowControlSettings;
 import com.google.cloud.pubsublite.flink.reader.*;
@@ -54,20 +55,24 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @AutoValue
-public abstract class PubsubLiteSourceSettings<OUT> implements Serializable {
+public abstract class PubsubLiteSourceSettings<OutputT> implements Serializable {
   private static final Logger LOG = LoggerFactory.getLogger(PubsubLiteSourceSettings.class);
   private static final long serialVersionUID = 0;
 
-  public static <OUT> Builder<OUT> builder() {
-    return new AutoValue_PubsubLiteSourceSettings.Builder<OUT>()
+  public static <OutputT> Builder<OutputT> builder(
+      PubsubLiteDeserializationSchema<OutputT> schema) {
+    return new AutoValue_PubsubLiteSourceSettings.Builder<OutputT>()
+        .setDeserializationSchema(schema)
         .setTimestampSelector(MessageTimestampExtractor.publishTimeExtractor())
         .setPartitionFinishedCondition(PartitionFinishedCondition.continueIndefinitely());
   }
 
+  public static Builder<SequencedMessage> messagesBuilder() {
+    return builder(PubsubLiteDeserializationSchema.sequencedMessageSchema());
+  }
+
   // Required
   public abstract SubscriptionPath subscriptionPath();
-
-  public abstract PubsubLiteDeserializationSchema<OUT> deserializationSchema();
 
   public abstract FlowControlSettings flowControlSettings();
 
@@ -78,6 +83,9 @@ public abstract class PubsubLiteSourceSettings<OUT> implements Serializable {
   public abstract PartitionFinishedCondition.Factory partitionFinishedCondition();
 
   // internal.
+
+  abstract PubsubLiteDeserializationSchema<OutputT> deserializationSchema();
+
   abstract @Nullable SerializableSupplier<AdminClient> adminClientSupplier();
 
   abstract @Nullable SerializableSupplier<CursorClient> cursorClientSupplier();
@@ -143,7 +151,7 @@ public abstract class PubsubLiteSourceSettings<OUT> implements Serializable {
     };
   }
 
-  Supplier<SplitReader<Record<OUT>, SubscriptionPartitionSplit>> getSplitReaderSupplier() {
+  Supplier<SplitReader<Record<OutputT>, SubscriptionPartitionSplit>> getSplitReaderSupplier() {
     return () ->
         new DeserializingSplitReader<>(
             new MessageSplitReader(getSplitStateFactory()),
@@ -170,25 +178,26 @@ public abstract class PubsubLiteSourceSettings<OUT> implements Serializable {
   }
 
   @AutoValue.Builder
-  abstract static class Builder<OUT> {
-    public abstract Builder<OUT> setSubscriptionPath(SubscriptionPath path);
+  abstract static class Builder<OutputT> {
+    public abstract Builder<OutputT> setSubscriptionPath(SubscriptionPath path);
 
-    public abstract Builder<OUT> setDeserializationSchema(
-        PubsubLiteDeserializationSchema<OUT> schema);
+    public abstract Builder<OutputT> setFlowControlSettings(FlowControlSettings settings);
 
-    public abstract Builder<OUT> setFlowControlSettings(FlowControlSettings settings);
+    public abstract Builder<OutputT> setBoundedness(Boundedness value);
 
-    public abstract Builder<OUT> setBoundedness(Boundedness value);
+    public abstract Builder<OutputT> setTimestampSelector(MessageTimestampExtractor value);
 
-    public abstract Builder<OUT> setTimestampSelector(MessageTimestampExtractor value);
-
-    public abstract Builder<OUT> setPartitionFinishedCondition(
+    public abstract Builder<OutputT> setPartitionFinishedCondition(
         PartitionFinishedCondition.Factory value);
 
-    abstract Builder<OUT> setAdminClientSupplier(SerializableSupplier<AdminClient> value);
 
-    abstract Builder<OUT> setCursorClientSupplier(SerializableSupplier<CursorClient> value);
+    abstract Builder<OutputT> setDeserializationSchema(
+        PubsubLiteDeserializationSchema<OutputT> schema);
 
-    abstract PubsubLiteSourceSettings<OUT> build();
+    abstract Builder<OutputT> setAdminClientSupplier(SerializableSupplier<AdminClient> value);
+
+    abstract Builder<OutputT> setCursorClientSupplier(SerializableSupplier<CursorClient> value);
+
+    abstract PubsubLiteSourceSettings<OutputT> build();
   }
 }
