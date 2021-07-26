@@ -39,12 +39,7 @@ public class SerializingPublisher<T> implements AtLeastOncePublisher<Tuple<T, In
   }
 
   @Override
-  public void checkpoint() throws CheckedApiException, InterruptedException {
-    inner.checkpoint();
-  }
-
-  @Override
-  public void close() throws Exception {
-    inner.close();
+  public void waitUntilNoOutstandingPublishes() throws CheckedApiException, InterruptedException {
+    inner.waitUntilNoOutstandingPublishes();
   }
 }

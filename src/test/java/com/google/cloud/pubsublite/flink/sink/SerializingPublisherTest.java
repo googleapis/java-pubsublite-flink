@@ -41,15 +41,9 @@ public class SerializingPublisherTest {
   }
 
   @Test
-  public void testClose() throws Exception {
-    publisher.close();
-    verify(mockPublisher).close();
-  }
-
-  @Test
-  public void testCheckpoint() throws Exception {
-    publisher.checkpoint();
-    verify(mockPublisher).checkpoint();
+  public void testWaitUntilNoOutstandingPublishes() throws Exception {
+    publisher.waitUntilNoOutstandingPublishes();
+    verify(mockPublisher).waitUntilNoOutstandingPublishes();
   }
 
   @Test
