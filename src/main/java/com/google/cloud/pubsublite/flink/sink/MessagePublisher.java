@@ -36,21 +36,25 @@ public class MessagePublisher implements AtLeastOncePublisher<Message> {
       return new ApiFutureCallback<MessageMetadata>() {
         @Override
         public void onFailure(Throwable throwable) {
-          error = ExtractStatus.toCanonical(throwable);
-          counter--;
-          MessageTracker.this.notify();
+          synchronized (MessageTracker.this) {
+            error = ExtractStatus.toCanonical(throwable);
+            counter--;
+            MessageTracker.this.notify();
+          }
 
         }
 
         @Override
         public void onSuccess(MessageMetadata unused) {
-          counter--;
-          MessageTracker.this.notify();
+          synchronized (MessageTracker.this) {
+            counter--;
+            MessageTracker.this.notify();
+          }
         }
       };
     }
 
-    public synchronized void waitForNoOutstanding() throws CheckedApiException, InterruptedException {
+    public synchronized void waitUntilNoneOutstanding() throws CheckedApiException, InterruptedException {
       while (counter > 0 && error == null) {
         wait();
       }
@@ -86,13 +90,7 @@ public class MessagePublisher implements AtLeastOncePublisher<Message> {
   }
 
   @Override
-  public void checkpoint() throws CheckedApiException, InterruptedException {
-    tracker.waitForNoOutstanding();
-  }
-
-  @Override
-  public void close() throws Exception {
-    publisher.stopAsync();
-    publisher.awaitTerminated();
+  public void waitUntilNoOutstandingPublishes() throws CheckedApiException, InterruptedException {
+    tracker.waitUntilNoneOutstanding();
   }
 }
