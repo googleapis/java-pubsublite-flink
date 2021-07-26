@@ -190,7 +190,6 @@ public abstract class PubsubLiteSourceSettings<OutputT> implements Serializable 
     public abstract Builder<OutputT> setPartitionFinishedCondition(
         PartitionFinishedCondition.Factory value);
 
-
     abstract Builder<OutputT> setDeserializationSchema(
         PubsubLiteDeserializationSchema<OutputT> schema);
 
