@@ -27,32 +27,42 @@ import com.google.cloud.pubsublite.internal.ExtractStatus;
 import com.google.cloud.pubsublite.internal.Publisher;
 import com.google.cloud.pubsublite.internal.wire.SystemExecutors;
 import com.google.errorprone.annotations.concurrent.GuardedBy;
+import java.util.ArrayDeque;
+import java.util.Deque;
 
 public class MessagePublisher implements AtLeastOncePublisher<Message> {
   private static class MessageTracker {
 
     @GuardedBy("this")
-    private CheckedApiException error = null;
+    private final Deque<CheckedApiException> errors = new ArrayDeque<>();
 
     @GuardedBy("this")
     private int counter = 0;
 
+    private static CheckedApiException combine(Deque<CheckedApiException> errors) {
+      CheckedApiException canonical = errors.pop();
+      while (!errors.isEmpty()) {
+        canonical.addSuppressed(errors.pop());
+      }
+      return canonical;
+    }
+
     public synchronized void failTracker(Exception e) {
-      error = ExtractStatus.toCanonical(e);
+      errors.add(ExtractStatus.toCanonical(e));
       notify();
     }
 
     public synchronized ApiFutureCallback<MessageMetadata> addOutstanding()
         throws CheckedApiException {
-      if (error != null) {
-        throw error;
+      if (!errors.isEmpty()) {
+        throw combine(errors);
       }
       counter++;
       return new ApiFutureCallback<MessageMetadata>() {
         @Override
         public void onFailure(Throwable throwable) {
           synchronized (MessageTracker.this) {
-            error = ExtractStatus.toCanonical(throwable);
+            errors.add(ExtractStatus.toCanonical(throwable));
             counter--;
             MessageTracker.this.notify();
           }
@@ -70,11 +80,11 @@ public class MessagePublisher implements AtLeastOncePublisher<Message> {
 
     public synchronized void waitUntilNoneOutstanding()
         throws CheckedApiException, InterruptedException {
-      while (counter > 0 && error == null) {
+      while (counter > 0 && errors.isEmpty()) {
         wait();
       }
-      if (error != null) {
-        throw error;
+      if (!errors.isEmpty()) {
+        throw combine(errors);
       }
     }
   }
@@ -101,7 +111,6 @@ public class MessagePublisher implements AtLeastOncePublisher<Message> {
   public void publish(Message message) throws CheckedApiException {
     ApiFutureCallback<MessageMetadata> done = tracker.addOutstanding();
     ApiFuture<MessageMetadata> future = publisher.publish(message);
-    System.out.println(future);
     ApiFutures.addCallback(future, done, SystemExecutors.getAlarmExecutor());
   }
 
