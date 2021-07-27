@@ -33,9 +33,7 @@ public class SerializingPublisher<T> implements BulkWaitPublisher<Tuple<T, Insta
 
   @Override
   public void publish(Tuple<T, Instant> message) {
-    Message publish;
-    publish = schema.serialize(message.x(), message.y());
-    inner.publish(publish);
+    inner.publish(schema.serialize(message.x(), message.y()));
   }
 
   @Override
