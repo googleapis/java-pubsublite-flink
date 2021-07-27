@@ -15,10 +15,11 @@
  */
 package com.google.cloud.pubsublite.flink;
 
+import com.google.cloud.Timestamp;
 import com.google.cloud.pubsublite.Message;
-import com.google.cloud.pubsublite.proto.PubSubMessage;
 import com.google.protobuf.ByteString;
 import java.io.Serializable;
+import java.sql.Date;
 import java.time.Instant;
 import org.apache.flink.api.common.serialization.SerializationSchema;
 
@@ -33,10 +34,10 @@ public interface PubsubLiteSerializationSchema<T> extends Serializable {
 
       @Override
       public Message serialize(T value, Instant timestamp) {
-        return Message.fromProto(
-            PubSubMessage.newBuilder()
-                .setData(ByteString.copyFrom(schema.serialize(value)))
-                .build());
+        return Message.builder()
+            .setData(ByteString.copyFrom(schema.serialize(value)))
+            .setEventTime(Timestamp.of(Date.from(timestamp)).toProto())
+            .build();
       }
     };
   }
