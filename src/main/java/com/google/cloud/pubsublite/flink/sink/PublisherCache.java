@@ -21,8 +21,8 @@ import com.google.api.core.ApiService.State;
 import com.google.api.gax.rpc.ApiException;
 import com.google.cloud.pubsublite.MessageMetadata;
 import com.google.cloud.pubsublite.internal.Publisher;
+import com.google.cloud.pubsublite.internal.wire.SystemExecutors;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.util.concurrent.MoreExecutors;
 import com.google.errorprone.annotations.concurrent.GuardedBy;
 import java.util.HashMap;
 
@@ -59,7 +59,7 @@ class PublisherCache<T> implements AutoCloseable {
             evict(options);
           }
         },
-        MoreExecutors.directExecutor());
+        SystemExecutors.getAlarmExecutor());
     publisher.startAsync().awaitRunning();
     return publisher;
   }
