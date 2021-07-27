@@ -48,7 +48,7 @@ public class SingleSubscriptionSplitDiscovery implements SplitDiscovery {
     this.partitionCount = partitionCount;
   }
 
-  static SingleSubscriptionSplitDiscovery create(
+  public static SingleSubscriptionSplitDiscovery create(
       AdminClient adminClient,
       CursorClient cursorClient,
       TopicPath topicPath,
@@ -57,7 +57,7 @@ public class SingleSubscriptionSplitDiscovery implements SplitDiscovery {
         adminClient, cursorClient, topicPath, subscriptionPath, 0L);
   }
 
-  static SingleSubscriptionSplitDiscovery fromCheckpoint(
+  public static SingleSubscriptionSplitDiscovery fromCheckpoint(
       SplitEnumeratorCheckpoint.Discovery proto,
       Collection<SubscriptionPartitionSplit> currentSplits,
       AdminClient adminClient,
