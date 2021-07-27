@@ -25,7 +25,7 @@ import com.google.cloud.pubsublite.MessageMetadata;
 import com.google.cloud.pubsublite.internal.CheckedApiException;
 import com.google.cloud.pubsublite.internal.ExtractStatus;
 import com.google.cloud.pubsublite.internal.Publisher;
-import com.google.common.util.concurrent.MoreExecutors;
+import com.google.cloud.pubsublite.internal.wire.SystemExecutors;
 import com.google.errorprone.annotations.concurrent.GuardedBy;
 
 public class MessagePublisher implements AtLeastOncePublisher<Message> {
@@ -92,7 +92,7 @@ public class MessagePublisher implements AtLeastOncePublisher<Message> {
             tracker.failTracker(ExtractStatus.toCanonical(failure).underlying);
           }
         },
-        MoreExecutors.directExecutor());
+        SystemExecutors.getAlarmExecutor());
     this.publisher.startAsync();
     this.publisher.awaitRunning();
   }
@@ -101,7 +101,8 @@ public class MessagePublisher implements AtLeastOncePublisher<Message> {
   public void publish(Message message) throws CheckedApiException {
     ApiFutureCallback<MessageMetadata> done = tracker.addOutstanding();
     ApiFuture<MessageMetadata> future = publisher.publish(message);
-    ApiFutures.addCallback(future, done, MoreExecutors.directExecutor());
+    System.out.println(future);
+    ApiFutures.addCallback(future, done, SystemExecutors.getAlarmExecutor());
   }
 
   @Override

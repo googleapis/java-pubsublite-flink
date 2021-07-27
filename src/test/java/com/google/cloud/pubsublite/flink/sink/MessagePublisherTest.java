@@ -35,6 +35,7 @@ import java.util.concurrent.Future;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -43,18 +44,18 @@ public class MessagePublisherTest {
   abstract static class FakePublisher extends FakeApiService
       implements Publisher<MessageMetadata> {}
 
-  @Spy FakePublisher publisher;
+  @Spy FakePublisher fakeInnerPublisher;
   MessagePublisher messagePublisher;
 
   @Before
   public void setUp() {
-    messagePublisher = new MessagePublisher(publisher);
+    messagePublisher = new MessagePublisher(fakeInnerPublisher);
   }
 
   @Test
   public void testPublish() throws Exception {
     Message message1 = Message.builder().build();
-    when(publisher.publish(message1))
+    when(fakeInnerPublisher.publish(message1))
         .thenReturn(
             ApiFutures.immediateFuture(MessageMetadata.of(examplePartition(), exampleOffset())));
 
@@ -62,17 +63,17 @@ public class MessagePublisherTest {
 
     messagePublisher.waitUntilNoOutstandingPublishes();
 
-    verify(publisher).publish(message1);
+    verify(fakeInnerPublisher).publish(message1);
   }
 
   @Test
   public void testSinglePublishFailure() throws Exception {
     Message message1 = Message.builder().build();
-    when(publisher.publish(message1))
+    when(fakeInnerPublisher.publish(message1))
         .thenReturn(
             ApiFutures.immediateFailedFuture(new CheckedApiException(Code.INTERNAL).underlying));
     messagePublisher.publish(message1);
-    verify(publisher).publish(message1);
+    verify(fakeInnerPublisher).publish(message1);
 
     assertThrows(
         CheckedApiException.class,
@@ -84,18 +85,33 @@ public class MessagePublisherTest {
   @Test
   public void testPublisherFailure() throws Exception {
     Message message1 = Message.builder().build();
-    publisher.fail(new RuntimeException("failure"));
+    fakeInnerPublisher.fail(new RuntimeException("failure"));
 
-    assertThrows(CheckedApiException.class, () -> messagePublisher.publish(message1));
+    // May or may not be called depending on the race between the publisher failure callback
+    // and calls to publish.
+    Mockito.lenient()
+        .when(fakeInnerPublisher.publish(message1))
+        .thenReturn(
+            ApiFutures.immediateFuture(MessageMetadata.of(examplePartition(), exampleOffset())));
+
+    assertThrows(
+        CheckedApiException.class,
+        () -> {
+          // Loop in case this runs before the failure callback of the publisher.
+          while (true) {
+            messagePublisher.publish(message1);
+            Thread.sleep(100);
+          }
+        });
   }
 
   @Test
   public void testCheckpointWithOutstandingPublish() throws Exception {
     Message message1 = Message.builder().build();
     SettableApiFuture<MessageMetadata> future = SettableApiFuture.create();
-    when(publisher.publish(message1)).thenReturn(future);
+    when(fakeInnerPublisher.publish(message1)).thenReturn(future);
     messagePublisher.publish(message1);
-    verify(publisher).publish(message1);
+    verify(fakeInnerPublisher).publish(message1);
 
     Future<?> checkpointFuture =
         Executors.newSingleThreadExecutor()
@@ -107,6 +123,7 @@ public class MessagePublisherTest {
                     throw new RuntimeException(e);
                   }
                 });
+    // Sleep for a short time so that the checkpoint could complete if it wasn't properly waiting.
     Thread.sleep(50);
     assertThat(checkpointFuture.isDone()).isFalse();
     future.set(MessageMetadata.of(examplePartition(), exampleOffset()));
