@@ -32,14 +32,14 @@ public class SerializingPublisher<T> implements AtLeastOncePublisher<Tuple<T, In
   }
 
   @Override
-  public void publish(Tuple<T, Instant> message) throws CheckedApiException {
+  public void publish(Tuple<T, Instant> message) {
     Message publish;
     publish = schema.serialize(message.x(), message.y());
     inner.publish(publish);
   }
 
   @Override
-  public void waitUntilNoOutstandingPublishes() throws CheckedApiException, InterruptedException {
+  public void waitUntilNoOutstandingPublishes() throws CheckedApiException {
     inner.waitUntilNoOutstandingPublishes();
   }
 }
