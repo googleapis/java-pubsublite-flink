@@ -32,14 +32,8 @@ public class PerServerPublisherCacheTest {
 
   @Test
   public void testCachedOptions() {
-    PublisherOptions options = PublisherOptions.create(exampleTopicPath(), null);
+    PublisherOptions options = PublisherOptions.create(exampleTopicPath());
     PerServerPublisherCache.cache.set(options, publisher);
-    assertThat(PerServerPublisherCache.getOrCreate(options)).isEqualTo(publisher);
-  }
-
-  @Test
-  public void testOptionsWithSupplier() {
-    PublisherOptions options = PublisherOptions.create(exampleTopicPath(), () -> publisher);
     assertThat(PerServerPublisherCache.getOrCreate(options)).isEqualTo(publisher);
   }
 }

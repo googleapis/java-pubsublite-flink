@@ -16,21 +16,14 @@
 package com.google.cloud.pubsublite.flink.sink;
 
 import com.google.auto.value.AutoValue;
-import com.google.cloud.pubsublite.MessageMetadata;
 import com.google.cloud.pubsublite.TopicPath;
-import com.google.cloud.pubsublite.internal.Publisher;
-import javax.annotation.Nullable;
-import org.apache.flink.util.function.SerializableSupplier;
 
 @AutoValue
 public abstract class PublisherOptions {
 
   public abstract TopicPath topicPath();
 
-  public abstract @Nullable SerializableSupplier<Publisher<MessageMetadata>> publisherSupplier();
-
-  public static PublisherOptions create(
-      TopicPath path, @Nullable SerializableSupplier<Publisher<MessageMetadata>> supplier) {
-    return new AutoValue_PublisherOptions(path, supplier);
+  public static PublisherOptions create(TopicPath path) {
+    return new AutoValue_PublisherOptions(path);
   }
 }

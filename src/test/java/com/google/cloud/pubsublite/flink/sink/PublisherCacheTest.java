@@ -62,12 +62,15 @@ public class PublisherCacheTest {
   }
 
   @Test
-  public void testFailedPublisherEvicted() {
+  public void testFailedPublisherEvicted() throws InterruptedException {
     FakePublisher pub1 = spy(FakePublisher.class);
     FakePublisher pub2 = spy(FakePublisher.class);
     when(mockFactory.New("key")).thenReturn(pub1).thenReturn(pub2);
     assertThat(cache.get("key")).isEqualTo(pub1);
-    pub1.fail(new RuntimeException("error"));
+    pub1.fail(new RuntimeException("failure"));
+    while (cache.get("key").equals(pub1)) {
+      Thread.sleep(100);
+    }
     assertThat(cache.get("key")).isEqualTo(pub2);
   }
 
