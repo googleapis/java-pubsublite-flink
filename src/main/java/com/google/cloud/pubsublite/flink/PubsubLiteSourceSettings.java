@@ -57,12 +57,13 @@ import org.slf4j.LoggerFactory;
 @AutoValue
 public abstract class PubsubLiteSourceSettings<OutputT> implements Serializable {
   private static final Logger LOG = LoggerFactory.getLogger(PubsubLiteSourceSettings.class);
-  private static final long serialVersionUID = 0;
+  private static final long serialVersionUID = 3206181560865850636L;
 
   public static <OutputT> Builder<OutputT> builder(
       PubsubLiteDeserializationSchema<OutputT> schema) {
     return new AutoValue_PubsubLiteSourceSettings.Builder<OutputT>()
         .setDeserializationSchema(schema)
+        .setBoundedness(Boundedness.CONTINUOUS_UNBOUNDED)
         .setTimestampSelector(MessageTimestampExtractor.publishTimeExtractor())
         .setPartitionFinishedCondition(PartitionFinishedCondition.continueIndefinitely());
   }
@@ -74,16 +75,19 @@ public abstract class PubsubLiteSourceSettings<OutputT> implements Serializable 
   // Required
   public abstract SubscriptionPath subscriptionPath();
 
+  // Required
   public abstract FlowControlSettings flowControlSettings();
 
+  // Optional
   public abstract Boundedness boundedness();
 
+  // Optional
   public abstract MessageTimestampExtractor timestampSelector();
 
+  // Optional
   public abstract PartitionFinishedCondition.Factory partitionFinishedCondition();
 
-  // internal.
-
+  // Internal
   abstract PubsubLiteDeserializationSchema<OutputT> deserializationSchema();
 
   abstract @Nullable SerializableSupplier<AdminClient> adminClientSupplier();
@@ -179,14 +183,19 @@ public abstract class PubsubLiteSourceSettings<OutputT> implements Serializable 
 
   @AutoValue.Builder
   abstract static class Builder<OutputT> {
+    // Required
     public abstract Builder<OutputT> setSubscriptionPath(SubscriptionPath path);
 
+    // Required
     public abstract Builder<OutputT> setFlowControlSettings(FlowControlSettings settings);
 
+    // Optional
     public abstract Builder<OutputT> setBoundedness(Boundedness value);
 
+    // Optional
     public abstract Builder<OutputT> setTimestampSelector(MessageTimestampExtractor value);
 
+    // Optional
     public abstract Builder<OutputT> setPartitionFinishedCondition(
         PartitionFinishedCondition.Factory value);
 
