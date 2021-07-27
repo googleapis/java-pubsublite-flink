@@ -17,7 +17,7 @@ package com.google.cloud.pubsublite.flink.sink;
 
 import com.google.cloud.pubsublite.internal.CheckedApiException;
 
-// Class is thread compatible.
+// Thread-compatible.
 public interface BulkWaitPublisher<T> {
 
   void publish(T message);

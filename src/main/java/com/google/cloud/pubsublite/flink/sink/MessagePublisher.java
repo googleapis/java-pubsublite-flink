@@ -27,7 +27,6 @@ import java.util.List;
 
 public class MessagePublisher implements BulkWaitPublisher<Message> {
   private final Publisher<MessageMetadata> publisher;
-
   private final List<ApiFuture<MessageMetadata>> publishes;
 
   public MessagePublisher(Publisher<MessageMetadata> publisher) {
