@@ -21,12 +21,12 @@ import com.google.cloud.pubsublite.flink.PubsubLiteSerializationSchema;
 import com.google.cloud.pubsublite.internal.CheckedApiException;
 import java.time.Instant;
 
-public class SerializingPublisher<T> implements AtLeastOncePublisher<Tuple<T, Instant>> {
-  private final AtLeastOncePublisher<Message> inner;
+public class SerializingPublisher<T> implements BulkWaitPublisher<Tuple<T, Instant>> {
+  private final BulkWaitPublisher<Message> inner;
   private final PubsubLiteSerializationSchema<T> schema;
 
   public SerializingPublisher(
-      AtLeastOncePublisher<Message> inner, PubsubLiteSerializationSchema<T> schema) {
+      BulkWaitPublisher<Message> inner, PubsubLiteSerializationSchema<T> schema) {
     this.inner = inner;
     this.schema = schema;
   }

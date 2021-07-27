@@ -31,7 +31,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SerializingPublisherTest {
-  @Mock AtLeastOncePublisher<Message> mockPublisher;
+  @Mock BulkWaitPublisher<Message> mockPublisher;
   @Mock PubsubLiteSerializationSchema<String> mockSchema;
   SerializingPublisher<String> publisher;
 
