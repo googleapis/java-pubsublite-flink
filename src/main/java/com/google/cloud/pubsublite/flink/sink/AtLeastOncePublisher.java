@@ -19,7 +19,7 @@ import com.google.cloud.pubsublite.internal.CheckedApiException;
 
 public interface AtLeastOncePublisher<T> {
 
-  void publish(T message) throws CheckedApiException;
+  void publish(T message);
 
-  void waitUntilNoOutstandingPublishes() throws CheckedApiException, InterruptedException;
+  void waitUntilNoOutstandingPublishes() throws CheckedApiException;
 }

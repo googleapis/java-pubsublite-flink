@@ -35,7 +35,6 @@ import java.util.concurrent.Future;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -79,29 +78,6 @@ public class MessagePublisherTest {
         CheckedApiException.class,
         () -> {
           messagePublisher.waitUntilNoOutstandingPublishes();
-        });
-  }
-
-  @Test
-  public void testPublisherFailure() throws Exception {
-    Message message1 = Message.builder().build();
-    fakeInnerPublisher.fail(new RuntimeException("failure"));
-
-    // May or may not be called depending on the race between the publisher failure callback
-    // and calls to publish.
-    Mockito.lenient()
-        .when(fakeInnerPublisher.publish(message1))
-        .thenReturn(
-            ApiFutures.immediateFuture(MessageMetadata.of(examplePartition(), exampleOffset())));
-
-    assertThrows(
-        CheckedApiException.class,
-        () -> {
-          // Loop in case this runs before the failure callback of the publisher.
-          while (true) {
-            messagePublisher.publish(message1);
-            Thread.sleep(100);
-          }
         });
   }
 
