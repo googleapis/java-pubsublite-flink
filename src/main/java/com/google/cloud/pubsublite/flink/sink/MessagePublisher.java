@@ -26,10 +26,9 @@ import com.google.errorprone.annotations.concurrent.GuardedBy;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MessagePublisher implements AtLeastOncePublisher<Message> {
+public class MessagePublisher implements BulkWaitPublisher<Message> {
   private final Publisher<MessageMetadata> publisher;
 
-  @GuardedBy("this")
   private final List<ApiFuture<MessageMetadata>> publishes;
 
   public MessagePublisher(Publisher<MessageMetadata> publisher) {
@@ -48,6 +47,7 @@ public class MessagePublisher implements AtLeastOncePublisher<Message> {
   public void waitUntilNoOutstandingPublishes() throws CheckedApiException {
     try {
       ApiFutures.allAsList(publishes).get();
+      publishes.clear();
     } catch (Exception e) {
       throw ExtractStatus.toCanonical(e);
     }
