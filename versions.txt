@@ -1,0 +1,4 @@
+# Format:
+# module:released-version:current-version
+
+google-cloud-pubsublite-flink:0.0.0:0.1.0-SNAPSHOT
