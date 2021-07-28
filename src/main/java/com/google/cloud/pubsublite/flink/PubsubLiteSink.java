@@ -51,7 +51,7 @@ public class PubsubLiteSink<T> extends RichSinkFunction<T> implements Checkpoint
   @Override
   public synchronized void invoke(T value, Context context) throws Exception {
     Long timestamp = context.timestamp();
-    if(timestamp == null ) {
+    if (timestamp == null) {
       timestamp = context.currentProcessingTime();
     }
     publisher.publish(Tuple.of(value, Instant.ofEpochMilli(timestamp)));
@@ -66,7 +66,6 @@ public class PubsubLiteSink<T> extends RichSinkFunction<T> implements Checkpoint
                 PerServerPublisherCache.getOrCreate(settings.getPublisherConfig())),
             settings.serializationSchema());
   }
-
 
   @Override
   public synchronized void close() throws Exception {
