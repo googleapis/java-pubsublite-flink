@@ -87,13 +87,14 @@ public class PubsubLiteReplay {
 
     // make parameters available in the web interface
     env.getConfig().setGlobalJobParameters(params);
-    env.setParallelism(30);
 
+    System.err.println("Configuring pipeline");
     env.fromSource(
             new PubsubLiteSource<>(Configuration.sourceSettings().build()),
             WatermarkStrategy.noWatermarks(),
             "testPSL")
         .addSink(new PubsubLiteSink<>(Configuration.sinkSettings().build()));
+    System.err.println("Running pipeline");
 
     // execute program
     env.execute("Pubsub Lite Replay");
