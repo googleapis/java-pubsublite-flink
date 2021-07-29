@@ -27,7 +27,7 @@ import com.google.errorprone.annotations.concurrent.GuardedBy;
 import java.util.HashMap;
 
 /** A map of working publishers by PublisherOptions. */
-class PublisherCache<T> implements AutoCloseable {
+public class PublisherCache<T> implements AutoCloseable {
   interface PublisherFactory<T> {
     Publisher<MessageMetadata> New(T options);
   }
@@ -37,7 +37,7 @@ class PublisherCache<T> implements AutoCloseable {
 
   private final PublisherFactory<T> factory;
 
-  PublisherCache(PublisherFactory<T> factory) {
+  public PublisherCache(PublisherFactory<T> factory) {
     this.factory = factory;
   }
 
@@ -45,13 +45,12 @@ class PublisherCache<T> implements AutoCloseable {
     livePublishers.remove(options);
   }
 
-  synchronized Publisher<MessageMetadata> get(T options) throws ApiException {
+  public synchronized Publisher<MessageMetadata> get(T options) throws ApiException {
     Publisher<MessageMetadata> publisher = livePublishers.get(options);
     if (publisher != null) {
       return publisher;
     }
     publisher = factory.New(options);
-    livePublishers.put(options, publisher);
     publisher.addListener(
         new Listener() {
           @Override
@@ -61,12 +60,21 @@ class PublisherCache<T> implements AutoCloseable {
         },
         SystemExecutors.getAlarmExecutor());
     publisher.startAsync().awaitRunning();
+    livePublishers.put(options, publisher);
     return publisher;
   }
 
   @VisibleForTesting
-  synchronized void set(T options, Publisher<MessageMetadata> toCache) {
+  public synchronized void set(T options, Publisher<MessageMetadata> toCache) {
     livePublishers.put(options, toCache);
+    toCache.addListener(
+        new Listener() {
+          @Override
+          public void failed(State s, Throwable t) {
+            evict(options);
+          }
+        },
+        SystemExecutors.getAlarmExecutor());
   }
 
   @Override

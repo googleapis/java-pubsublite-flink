@@ -120,6 +120,7 @@ public class MessageSplitReader
       for (SubscriptionPartitionSplit newSplit : splitsChange.splits()) {
         if (!subscribers.containsKey(newSplit.splitId())) {
           subscribers.put(newSplit.splitId(), factory.New(newSplit));
+          LOG.info("Adding split {} to fetcher", newSplit);
         } else {
           LOG.error("Adding split {} which was already added to the fetcher", newSplit);
         }

@@ -33,7 +33,7 @@ public class PerServerPublisherCacheTest {
   @Test
   public void testCachedOptions() {
     PublisherOptions options = PublisherOptions.create(exampleTopicPath());
-    PerServerPublisherCache.cache.set(options, publisher);
+    PerServerPublisherCache.getCache().set(options, publisher);
     assertThat(PerServerPublisherCache.getOrCreate(options)).isEqualTo(publisher);
   }
 }

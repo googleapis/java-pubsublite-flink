@@ -33,9 +33,10 @@ import com.google.cloud.pubsublite.internal.wire.RoutingMetadata;
 import com.google.cloud.pubsublite.internal.wire.SinglePartitionPublisherBuilder;
 import com.google.cloud.pubsublite.v1.PublisherServiceClient;
 import com.google.cloud.pubsublite.v1.PublisherServiceSettings;
+import com.google.common.annotations.VisibleForTesting;
 
 public class PerServerPublisherCache {
-  static PublisherCache<PublisherOptions> cache =
+  private static final PublisherCache<PublisherOptions> cache =
       new PublisherCache<>(PerServerPublisherCache::newPublisher);
 
   private static PublisherServiceClient newServiceClient(TopicPath topic, Partition partition) {
@@ -75,5 +76,10 @@ public class PerServerPublisherCache {
 
   public static Publisher<MessageMetadata> getOrCreate(PublisherOptions options) {
     return cache.get(options);
+  }
+
+  @VisibleForTesting
+  public static PublisherCache<PublisherOptions> getCache() {
+    return cache;
   }
 }
