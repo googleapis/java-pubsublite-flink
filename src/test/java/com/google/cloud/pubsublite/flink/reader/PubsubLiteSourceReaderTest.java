@@ -109,6 +109,9 @@ public class PubsubLiteSourceReaderTest {
     assertThat(reader.pollNext(output)).isEqualTo(InputStatus.NOTHING_AVAILABLE);
 
     reader.notifyNoMoreSplits();
+    while(reader.pollNext(output) != InputStatus.END_OF_INPUT) {
+      assertThat(output.getEmittedRecords()).hasSize(6);
+    }
     assertThat(reader.pollNext(output)).isEqualTo(InputStatus.END_OF_INPUT);
     assertThat(output.getEmittedRecords()).containsExactly("0", "1", "2", "3", "5", "7");
   }
