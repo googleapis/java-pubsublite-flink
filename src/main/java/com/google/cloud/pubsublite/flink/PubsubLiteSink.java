@@ -23,6 +23,8 @@ import com.google.cloud.pubsublite.flink.sink.SerializingPublisher;
 import com.google.errorprone.annotations.concurrent.GuardedBy;
 import java.time.Instant;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.runtime.state.FunctionInitializationContext;
+import org.apache.flink.runtime.state.FunctionSnapshotContext;
 import org.apache.flink.streaming.api.checkpoint.CheckpointedFunction;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 
@@ -37,16 +39,14 @@ public class PubsubLiteSink<T> extends RichSinkFunction<T> implements Checkpoint
   }
 
   @Override
-  public synchronized void snapshotState(
-      org.apache.flink.runtime.state.FunctionSnapshotContext functionSnapshotContext)
+  public void initializeState(FunctionInitializationContext functionInitializationContext)
+      throws Exception {}
+
+  @Override
+  public synchronized void snapshotState(FunctionSnapshotContext functionSnapshotContext)
       throws Exception {
     publisher.waitUntilNoOutstandingPublishes();
   }
-
-  @Override
-  public void initializeState(
-      org.apache.flink.runtime.state.FunctionInitializationContext functionInitializationContext)
-      throws Exception {}
 
   @Override
   public synchronized void invoke(T value, Context context) throws Exception {

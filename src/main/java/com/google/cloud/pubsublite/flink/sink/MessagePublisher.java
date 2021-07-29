@@ -32,8 +32,6 @@ public class MessagePublisher implements BulkWaitPublisher<Message> {
   public MessagePublisher(Publisher<MessageMetadata> publisher) {
     this.publisher = publisher;
     this.publishes = new ArrayList<>();
-    this.publisher.startAsync();
-    this.publisher.awaitRunning();
   }
 
   @Override

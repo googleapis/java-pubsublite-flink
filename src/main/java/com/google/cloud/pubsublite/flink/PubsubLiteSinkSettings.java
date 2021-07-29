@@ -23,18 +23,21 @@ import java.io.Serializable;
 
 @AutoValue
 public abstract class PubsubLiteSinkSettings<InputT> implements Serializable {
-  public static <InputT> PubsubLiteSinkSettings.Builder<InputT> builder(
-      PubsubLiteSerializationSchema<InputT> schema) {
+  // Create a builder which will accept messages of type InputT and serialize them using the
+  // provided serialization schema.
+  public static <InputT> Builder<InputT> builder(PubsubLiteSerializationSchema<InputT> schema) {
     return new AutoValue_PubsubLiteSinkSettings.Builder<InputT>().setSerializationSchema(schema);
   }
 
-  public static PubsubLiteSinkSettings.Builder<Message> messagesBuilder() {
+  // Create a sink which will accept already serialized pubsub messages/
+  public static Builder<Message> messagesBuilder() {
     return builder(PubsubLiteSerializationSchema.messageSchema());
   }
 
-  // Required
+  // Required. The path of the topic to publish messages to.
   public abstract TopicPath topicPath();
 
+  // Internal.
   abstract PubsubLiteSerializationSchema<InputT> serializationSchema();
 
   PublisherOptions getPublisherConfig() {
@@ -43,8 +46,10 @@ public abstract class PubsubLiteSinkSettings<InputT> implements Serializable {
 
   @AutoValue.Builder
   abstract static class Builder<InputT> {
+    // Required.
     public abstract Builder<InputT> setTopicPath(TopicPath value);
 
+    // Internal.
     abstract Builder<InputT> setSerializationSchema(PubsubLiteSerializationSchema<InputT> value);
 
     public abstract PubsubLiteSinkSettings<InputT> build();
