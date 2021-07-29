@@ -18,7 +18,7 @@ package com.google.cloud.pubsublite.flink;
 import com.google.auto.value.AutoValue;
 import com.google.cloud.pubsublite.Message;
 import com.google.cloud.pubsublite.TopicPath;
-import com.google.cloud.pubsublite.flink.sink.PublisherOptions;
+import com.google.cloud.pubsublite.flink.internal.sink.PublisherOptions;
 import java.io.Serializable;
 
 @AutoValue

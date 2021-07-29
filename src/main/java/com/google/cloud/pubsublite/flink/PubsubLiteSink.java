@@ -16,10 +16,10 @@
 package com.google.cloud.pubsublite.flink;
 
 import com.google.cloud.Tuple;
-import com.google.cloud.pubsublite.flink.sink.BulkWaitPublisher;
-import com.google.cloud.pubsublite.flink.sink.MessagePublisher;
-import com.google.cloud.pubsublite.flink.sink.PerServerPublisherCache;
-import com.google.cloud.pubsublite.flink.sink.SerializingPublisher;
+import com.google.cloud.pubsublite.flink.internal.sink.BulkWaitPublisher;
+import com.google.cloud.pubsublite.flink.internal.sink.MessagePublisher;
+import com.google.cloud.pubsublite.flink.internal.sink.PerServerPublisherCache;
+import com.google.cloud.pubsublite.flink.internal.sink.SerializingPublisher;
 import com.google.errorprone.annotations.concurrent.GuardedBy;
 import java.time.Instant;
 import org.apache.flink.configuration.Configuration;
