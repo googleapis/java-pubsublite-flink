@@ -22,6 +22,7 @@ import java.io.Serializable;
 import java.sql.Date;
 import java.time.Instant;
 import org.apache.flink.api.common.serialization.SerializationSchema;
+import org.apache.flink.api.common.serialization.SerializationSchema.InitializationContext;
 
 public interface PubsubLiteSerializationSchema<T> extends Serializable {
   static <T> PubsubLiteSerializationSchema<T> dataOnly(SerializationSchema<T> schema) {
@@ -38,6 +39,18 @@ public interface PubsubLiteSerializationSchema<T> extends Serializable {
             .setData(ByteString.copyFrom(schema.serialize(value)))
             .setEventTime(Timestamp.of(Date.from(timestamp)).toProto())
             .build();
+      }
+    };
+  }
+
+  static PubsubLiteSerializationSchema<Message> messageSchema() {
+    return new PubsubLiteSerializationSchema<Message>() {
+      @Override
+      public void open(InitializationContext context) {}
+
+      @Override
+      public Message serialize(Message value, Instant timestamp) {
+        return value;
       }
     };
   }
