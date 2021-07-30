@@ -67,6 +67,14 @@ public class PublisherCache<T> implements AutoCloseable {
   @VisibleForTesting
   public synchronized void set(T options, Publisher<MessageMetadata> toCache) {
     livePublishers.put(options, toCache);
+    toCache.addListener(
+        new Listener() {
+          @Override
+          public void failed(State s, Throwable t) {
+            evict(options);
+          }
+        },
+        SystemExecutors.getAlarmExecutor());
   }
 
   @Override

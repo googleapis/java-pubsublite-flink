@@ -104,7 +104,7 @@ public abstract class PubsubLiteSourceSettings<OutputT> implements Serializable 
               RoutingMetadata.of(path, partition),
               settingsBuilder);
       return SubscriberServiceClient.create(
-          addDefaultSettings(path.location().region(), settingsBuilder));
+          addDefaultSettings(path.location().extractRegion(), settingsBuilder));
     } catch (Throwable t) {
       throw toCanonical(t).underlying;
     }
@@ -127,7 +127,9 @@ public abstract class PubsubLiteSourceSettings<OutputT> implements Serializable 
       return adminClientSupplier().get();
     }
     return AdminClient.create(
-        AdminClientSettings.newBuilder().setRegion(subscriptionPath().location().region()).build());
+        AdminClientSettings.newBuilder()
+            .setRegion(subscriptionPath().location().extractRegion())
+            .build());
   }
 
   CursorClient getCursorClient() {
@@ -136,7 +138,7 @@ public abstract class PubsubLiteSourceSettings<OutputT> implements Serializable 
     }
     return CursorClient.create(
         CursorClientSettings.newBuilder()
-            .setRegion(subscriptionPath().location().region())
+            .setRegion(subscriptionPath().location().extractRegion())
             .build());
   }
 
