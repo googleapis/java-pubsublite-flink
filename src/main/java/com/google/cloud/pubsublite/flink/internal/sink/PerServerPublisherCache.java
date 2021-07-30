@@ -48,7 +48,7 @@ public class PerServerPublisherCache {
             settingsBuilder);
     try {
       return PublisherServiceClient.create(
-          addDefaultSettings(topic.location().region(), settingsBuilder));
+          addDefaultSettings(topic.location().extractRegion(), settingsBuilder));
     } catch (Throwable t) {
       throw toCanonical(t).underlying;
     }
@@ -69,7 +69,7 @@ public class PerServerPublisherCache {
                     .setServiceClient(newServiceClient(options.topicPath(), partition))
                     .setBatchingSettings(PublisherSettings.DEFAULT_BATCHING_SETTINGS)
                     .build())
-        .setAdminClient(getAdminClient(options.topicPath().location().region()))
+        .setAdminClient(getAdminClient(options.topicPath().location().extractRegion()))
         .build()
         .instantiate();
   }
