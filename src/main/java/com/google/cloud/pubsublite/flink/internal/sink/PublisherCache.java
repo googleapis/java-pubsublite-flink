@@ -59,12 +59,13 @@ public class PublisherCache<T> implements AutoCloseable {
         new Listener() {
           @Override
           public void failed(State s, Throwable t) {
-            LOG.error("Publisher failed with exception", t);
+            LOG.error("Publisher for options {} failed with exception", options, t);
             evict(options);
           }
         },
         SystemExecutors.getAlarmExecutor());
     publisher.startAsync().awaitRunning();
+    LOG.info("Successfully started publisher for options {}", options);
     livePublishers.put(options, publisher);
     return publisher;
   }
