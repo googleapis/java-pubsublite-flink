@@ -156,7 +156,7 @@ public class PubsubLiteSplitEnumeratorTest {
     PubsubLiteSplitEnumerator enumerator = createEnumerator(Boundedness.CONTINUOUS_UNBOUNDED);
 
     when(discovery.checkpoint()).thenReturn(Discovery.newBuilder().build());
-    SplitEnumeratorCheckpoint checkpoint = enumerator.snapshotState(0L);
+    SplitEnumeratorCheckpoint checkpoint = enumerator.snapshotState();
     assertThat(checkpoint.getAssignmentsList()).containsExactlyElementsIn(assigner.checkpoint());
     assertThat(checkpoint.getDiscovery()).isEqualTo(discovery.checkpoint());
   }

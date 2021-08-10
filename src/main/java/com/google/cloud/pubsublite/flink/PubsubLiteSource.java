@@ -65,8 +65,10 @@ public class PubsubLiteSource<OutputT>
 
           @Override
           public UserCodeClassLoader getUserCodeClassLoader() {
-            return readerContext.getUserCodeClassLoader();
+            return null;
           }
+
+
         });
     return new PubsubLiteSourceReader<>(
         new PubsubLiteRecordEmitter<>(),

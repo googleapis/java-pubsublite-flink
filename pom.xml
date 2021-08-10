@@ -12,7 +12,7 @@
     <artifactId>google-cloud-pubsublite-flink</artifactId>
     <version>0.1.0-SNAPSHOT</version>
     <properties>
-        <flink.version>1.13.1</flink.version>
+        <flink.version>1.12.0</flink.version>
         <pubsublite.version>0.18.0</pubsublite.version>
     </properties>
     <build>
