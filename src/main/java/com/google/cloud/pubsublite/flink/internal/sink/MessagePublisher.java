@@ -17,6 +17,7 @@ package com.google.cloud.pubsublite.flink.internal.sink;
 
 import com.google.api.core.ApiFuture;
 import com.google.api.core.ApiFutures;
+import com.google.api.core.ApiService.State;
 import com.google.cloud.pubsublite.Message;
 import com.google.cloud.pubsublite.MessageMetadata;
 import com.google.cloud.pubsublite.internal.CheckedApiException;
@@ -36,7 +37,15 @@ public class MessagePublisher implements BulkWaitPublisher<Message> {
 
   @Override
   public void publish(Message message) {
-    publishes.add(publisher.publish(message));
+    try {
+      publishes.add(publisher.publish(message));
+    } catch (IllegalStateException e) {
+      if(publisher.state() == State.FAILED) {
+        throw new IllegalStateException("Publisher failed with cause: " + publisher.failureCause());
+      } else {
+        throw new IllegalStateException("Cannot publish, publisher in state " + publisher.state());
+      }
+    }
   }
 
   @Override
