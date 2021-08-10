@@ -26,6 +26,8 @@ import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.java.utils.MultipleParameterTool;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.functions.sink.SinkFunction;
+import org.apache.flink.streaming.api.functions.sink.SinkFunction.Context;
 
 class Configuration {
 
@@ -78,6 +80,7 @@ public class PubsubLiteReplay {
   // *************************************************************************
 
   public static void main(String[] args) throws Exception {
+
 
     // Checking input parameters
     final MultipleParameterTool params = MultipleParameterTool.fromArgs(args);
