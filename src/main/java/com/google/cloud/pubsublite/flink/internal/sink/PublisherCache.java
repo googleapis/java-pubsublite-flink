@@ -20,7 +20,6 @@ import com.google.api.core.ApiService.Listener;
 import com.google.api.core.ApiService.State;
 import com.google.api.gax.rpc.ApiException;
 import com.google.cloud.pubsublite.MessageMetadata;
-import com.google.cloud.pubsublite.flink.internal.enumerator.PubsubLiteSplitEnumerator;
 import com.google.cloud.pubsublite.internal.Publisher;
 import com.google.cloud.pubsublite.internal.wire.SystemExecutors;
 import com.google.common.annotations.VisibleForTesting;
@@ -50,6 +49,7 @@ public class PublisherCache<T> implements AutoCloseable {
   }
 
   public synchronized Publisher<MessageMetadata> get(T options) throws ApiException {
+    LOG.info("Requesting a publisher for options {}", options);
     Publisher<MessageMetadata> publisher = livePublishers.get(options);
     if (publisher != null) {
       return publisher;
@@ -77,6 +77,7 @@ public class PublisherCache<T> implements AutoCloseable {
         new Listener() {
           @Override
           public void failed(State s, Throwable t) {
+            LOG.error("Publisher for options {} failed with exception", options, t);
             evict(options);
           }
         },
