@@ -20,14 +20,18 @@ import com.google.api.core.ApiService.Listener;
 import com.google.api.core.ApiService.State;
 import com.google.api.gax.rpc.ApiException;
 import com.google.cloud.pubsublite.MessageMetadata;
+import com.google.cloud.pubsublite.flink.internal.enumerator.PubsubLiteSplitEnumerator;
 import com.google.cloud.pubsublite.internal.Publisher;
 import com.google.cloud.pubsublite.internal.wire.SystemExecutors;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.errorprone.annotations.concurrent.GuardedBy;
 import java.util.HashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** A map of working publishers by PublisherOptions. */
 public class PublisherCache<T> implements AutoCloseable {
+  private static final Logger LOG = LoggerFactory.getLogger(PublisherCache.class);
   interface PublisherFactory<T> {
     Publisher<MessageMetadata> New(T options);
   }
@@ -55,6 +59,7 @@ public class PublisherCache<T> implements AutoCloseable {
         new Listener() {
           @Override
           public void failed(State s, Throwable t) {
+            LOG.error("Publisher failed with exception", t);
             evict(options);
           }
         },
