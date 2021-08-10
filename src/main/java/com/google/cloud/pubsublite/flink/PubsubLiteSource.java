@@ -55,21 +55,6 @@ public class PubsubLiteSource<OutputT>
   @Override
   public SourceReader<OutputT, SubscriptionPartitionSplit> createReader(
       SourceReaderContext readerContext) throws Exception {
-    PubsubLiteDeserializationSchema<OutputT> schema = settings.deserializationSchema();
-    schema.open(
-        new DeserializationSchema.InitializationContext() {
-          @Override
-          public MetricGroup getMetricGroup() {
-            return readerContext.metricGroup();
-          }
-
-          @Override
-          public UserCodeClassLoader getUserCodeClassLoader() {
-            return null;
-          }
-
-
-        });
     return new PubsubLiteSourceReader<>(
         new PubsubLiteRecordEmitter<>(),
         settings.getCursorCommitter(),
