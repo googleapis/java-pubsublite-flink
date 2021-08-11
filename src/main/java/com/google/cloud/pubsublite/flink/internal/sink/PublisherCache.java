@@ -56,7 +56,7 @@ public class PublisherCache<T> implements AutoCloseable {
     }
     publisher = factory.New(options);
     publisher.addListener(
-        new Listener() {
+    new Listener() {
           @Override
           public void failed(State s, Throwable t) {
             LOG.error("Publisher for options {} failed with exception", options, t);

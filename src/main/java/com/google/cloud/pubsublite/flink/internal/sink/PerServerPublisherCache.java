@@ -75,7 +75,8 @@ public class PerServerPublisherCache {
   }
 
   public static Publisher<MessageMetadata> getOrCreate(PublisherOptions options) {
-    return cache.get(options);
+    return newPublisher(options);
+    // return cache.get(options);
   }
 
   @VisibleForTesting
