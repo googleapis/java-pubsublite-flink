@@ -44,6 +44,7 @@ public class PartitionCountWatchingPublisher extends ProxyService
   private static final GoogleLogger log = GoogleLogger.forEnclosingClass();
   private final PartitionPublisherFactory publisherFactory;
   private final RoutingPolicy.Factory policyFactory;
+  private final PartitionCountWatcher watcher;
 
   private static class PartitionsWithRouting {
     public final ImmutableMap<Partition, Publisher<MessageMetadata>> publishers;
@@ -104,8 +105,8 @@ public class PartitionCountWatchingPublisher extends ProxyService
       PartitionCountWatcher.Factory configWatcherFactory) {
     this.publisherFactory = publisherFactory;
     this.policyFactory = policyFactory;
-    PartitionCountWatcher configWatcher = configWatcherFactory.newWatcher(this::handleConfig);
-    addServices(configWatcher);
+    this.watcher = configWatcherFactory.newWatcher(this::handleConfig);
+    addServices(this.watcher);
   }
 
   @Override
@@ -115,7 +116,7 @@ public class PartitionCountWatchingPublisher extends ProxyService
       partitions = partitionsWithRouting;
     }
     if (!partitions.isPresent()) {
-      throw new IllegalStateException("Publish called before start or after shutdown");
+      throw new IllegalStateException("Publish called before start or after shutdown. Watcher state: " + watcher.state());
     }
     try {
       return partitions.get().publish(message);
@@ -180,12 +181,14 @@ public class PartitionCountWatchingPublisher extends ProxyService
       Optional<PartitionsWithRouting> current = partitionsWithRouting;
       long currentSize = current.map(withRouting -> withRouting.publishers.size()).orElse(0);
       if (partitionCount == currentSize) {
+        if(!current.isPresent()) throw new IllegalStateException("weird");
         return;
       }
       if (partitionCount < currentSize) {
         log.atWarning().log(
             "Received an unexpected decrease in partition count. Previous partition count %s, new count %s",
             currentSize, partitionCount);
+        if(!current.isPresent()) throw new IllegalStateException("weird");
         return;
       }
       ImmutableMap.Builder<Partition, Publisher<MessageMetadata>> mapBuilder =
