@@ -40,10 +40,9 @@ public class MessagePublisher implements BulkWaitPublisher<Message> {
     try {
       publishes.add(publisher.publish(message));
     } catch (IllegalStateException e) {
-      if(publisher.state() == State.FAILED) {
+      if (publisher.state() == State.FAILED) {
         throw new IllegalStateException("Publisher failed with cause: " + publisher.failureCause());
       } else {
-        publisher.stopAsync().awaitTerminated();
         throw new IllegalStateException("Cannot publish, publisher in state " + publisher.state() + publisher.toString());
       }
     }
