@@ -29,18 +29,18 @@ import com.google.cloud.pubsublite.flink.internal.split.SubscriptionPartitionSpl
 import com.google.cloud.pubsublite.flink.internal.split.SubscriptionPartitionSplitSerializer;
 import com.google.cloud.pubsublite.flink.proto.SplitEnumeratorCheckpoint;
 import com.google.cloud.pubsublite.internal.ExtractStatus;
-import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.connector.source.*;
 import org.apache.flink.api.java.typeutils.ResultTypeQueryable;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.io.SimpleVersionedSerializer;
-import org.apache.flink.metrics.MetricGroup;
-import org.apache.flink.util.UserCodeClassLoader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PubsubLiteSource<OutputT>
     implements Source<OutputT, SubscriptionPartitionSplit, SplitEnumeratorCheckpoint>,
         ResultTypeQueryable<OutputT> {
+  private static final Logger LOG = LoggerFactory.getLogger(PubsubLiteSource.class);
   private final PubsubLiteSourceSettings<OutputT> settings;
 
   public PubsubLiteSource(PubsubLiteSourceSettings<OutputT> settings) {
@@ -89,6 +89,7 @@ public class PubsubLiteSource<OutputT>
   public SplitEnumerator<SubscriptionPartitionSplit, SplitEnumeratorCheckpoint> restoreEnumerator(
       SplitEnumeratorContext<SubscriptionPartitionSplit> enumContext,
       SplitEnumeratorCheckpoint checkpoint) {
+    LOG.info("Restoring enumerator from checkpoint {}", checkpoint);
     PartitionAssigner assigner =
         UniformPartitionAssigner.fromCheckpoint(checkpoint.getAssignmentsList());
     SplitDiscovery discovery =

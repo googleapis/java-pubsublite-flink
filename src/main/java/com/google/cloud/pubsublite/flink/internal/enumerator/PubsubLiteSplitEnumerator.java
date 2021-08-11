@@ -92,7 +92,9 @@ public class PubsubLiteSplitEnumerator
     SplitEnumeratorCheckpoint.Builder builder = SplitEnumeratorCheckpoint.newBuilder();
     builder.addAllAssignments(assigner.checkpoint());
     builder.setDiscovery(discovery.checkpoint());
-    return builder.build();
+    SplitEnumeratorCheckpoint checkpoint = builder.build();
+    LOG.info("Creating checkpoint {}", checkpoint);
+    return checkpoint;
   }
 
   @Override
