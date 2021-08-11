@@ -62,8 +62,8 @@ class Configuration {
         .setSubscriptionPath(subscriptionPath())
         .setFlowControlSettings(
             FlowControlSettings.builder()
-                .setBytesOutstanding(100000)
-                .setMessagesOutstanding(1000)
+                .setBytesOutstanding(10000)
+                .setMessagesOutstanding(100)
                 .build());
   }
 
