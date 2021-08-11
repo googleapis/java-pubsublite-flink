@@ -75,7 +75,9 @@ public class PerServerPublisherCache {
   }
 
   public static Publisher<MessageMetadata> getOrCreate(PublisherOptions options) {
-    return newPublisher(options);
+    Publisher<MessageMetadata> publisher = newPublisher(options);
+    publisher.startAsync().awaitRunning();
+    return publisher;
     // return cache.get(options);
   }
 
