@@ -27,6 +27,7 @@ import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.java.utils.MultipleParameterTool;
+import org.apache.flink.streaming.api.CheckpointingMode;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.sink.SinkFunction;
 import org.apache.flink.streaming.api.functions.sink.SinkFunction.Context;
@@ -91,6 +92,7 @@ public class PubsubLiteReplay {
     // make parameters available in the web interface
     env.getConfig().setGlobalJobParameters(params);
     env.setParallelism(2);
+    env.enableCheckpointing(6000, CheckpointingMode.EXACTLY_ONCE);
 
     System.err.println("Configuring pipeline");
     env.fromSource(
