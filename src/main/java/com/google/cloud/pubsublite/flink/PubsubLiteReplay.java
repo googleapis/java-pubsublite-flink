@@ -96,7 +96,13 @@ public class PubsubLiteReplay {
             new PubsubLiteSource<>(Configuration.sourceSettings().build()),
             WatermarkStrategy.noWatermarks(),
             "testPSL")
-        .addSink(new PubsubLiteSink<>(Configuration.sinkSettings().build()));
+        .addSink(new SinkFunction<String>() {
+          @Override
+          public void invoke(String value, Context context) throws Exception {
+            System.out.println(value);
+          }
+        });
+     //   .addSink(new PubsubLiteSink<>(Configuration.sinkSettings().build()));
     System.err.println("Running pipeline");
 
     // execute program
