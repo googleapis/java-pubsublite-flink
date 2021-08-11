@@ -37,15 +37,7 @@ public class MessagePublisher implements BulkWaitPublisher<Message> {
 
   @Override
   public void publish(Message message) {
-    try {
-      publishes.add(publisher.publish(message));
-    } catch (IllegalStateException e) {
-      if (publisher.state() == State.FAILED) {
-        throw new IllegalStateException("Publisher failed with cause: " + publisher.failureCause());
-      } else {
-        throw new IllegalStateException("Cannot publish, publisher in state " + publisher.state() + publisher.toString());
-      }
-    }
+    publishes.add(publisher.publish(message));
   }
 
   @Override
