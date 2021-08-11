@@ -35,7 +35,7 @@ import com.google.cloud.pubsublite.v1.PublisherServiceSettings;
 import com.google.common.annotations.VisibleForTesting;
 
 public class PerServerPublisherCache {
-  private static final PublisherCache<PublisherOptions> cache =
+  private static final PublisherCache<PublisherOptions> cache2 =
       new PublisherCache<>(PerServerPublisherCache::newPublisher);
 
   private static PublisherServiceClient newServiceClient(TopicPath topic, Partition partition) {
@@ -74,11 +74,11 @@ public class PerServerPublisherCache {
   }
 
   public static Publisher<MessageMetadata> getOrCreate(PublisherOptions options) {
-    return cache.get(options);
+    return cache2.get(options);
   }
 
   @VisibleForTesting
   public static PublisherCache<PublisherOptions> getCache() {
-    return cache;
+    return cache2;
   }
 }
