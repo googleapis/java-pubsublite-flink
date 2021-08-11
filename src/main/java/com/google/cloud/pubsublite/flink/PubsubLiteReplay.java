@@ -24,6 +24,7 @@ import com.google.cloud.pubsublite.TopicPath;
 import com.google.cloud.pubsublite.cloudpubsub.FlowControlSettings;
 import com.google.cloud.pubsublite.flink.internal.sink.PerServerPublisherCache;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
+import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.java.utils.MultipleParameterTool;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
@@ -95,14 +96,12 @@ public class PubsubLiteReplay {
     env.fromSource(
             new PubsubLiteSource<>(Configuration.sourceSettings().build()),
             WatermarkStrategy.noWatermarks(),
-            "testPSL")
-        .addSink(new SinkFunction<String>() {
-          @Override
-          public void invoke(String value, Context context) throws Exception {
-            System.out.println(value);
-          }
-        });
-     //   .addSink(new PubsubLiteSink<>(Configuration.sinkSettings().build()));
+            "testPSL").map(new MapFunction<String, String>() {
+      @Override
+      public String map(String s) throws Exception {
+        return s;
+      }
+    }).addSink(new PubsubLiteSink<>(Configuration.sinkSettings().build()));
     System.err.println("Running pipeline");
 
     // execute program
