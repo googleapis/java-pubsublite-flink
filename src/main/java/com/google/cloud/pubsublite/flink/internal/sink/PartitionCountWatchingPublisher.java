@@ -221,7 +221,7 @@ public class PartitionCountWatchingPublisher extends ProxyService
   @Override
   protected void handlePermanentError(CheckedApiException error) {
     try {
-      stop();
+      // stop();
     } catch (Exception e) {
       log.atWarning().withCause(e).log("Encountered exception while trying to handle failure");
     }
