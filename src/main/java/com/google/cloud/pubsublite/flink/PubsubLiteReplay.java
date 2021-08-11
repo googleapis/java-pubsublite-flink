@@ -81,28 +81,6 @@ public class PubsubLiteReplay {
   // *************************************************************************
 
   public static void main(String[] args) throws Exception {
-
-    PubsubLiteSink<String> sink = new PubsubLiteSink<>(Configuration.sinkSettings().build());
-    sink.open(new org.apache.flink.configuration.Configuration());
-    sink.invoke("yolo", new Context() {
-      @Override
-      public long currentProcessingTime() {
-        return 0;
-      }
-
-      @Override
-      public long currentWatermark() {
-        return 0;
-      }
-
-      @Override
-      public Long timestamp() {
-        return null;
-      }
-    });
-    sink.close();
-    System.out.println("published");
-
     // Checking input parameters
     final MultipleParameterTool params = MultipleParameterTool.fromArgs(args);
 
@@ -111,6 +89,7 @@ public class PubsubLiteReplay {
 
     // make parameters available in the web interface
     env.getConfig().setGlobalJobParameters(params);
+    env.setParallelism(2);
 
     System.err.println("Configuring pipeline");
     env.fromSource(
