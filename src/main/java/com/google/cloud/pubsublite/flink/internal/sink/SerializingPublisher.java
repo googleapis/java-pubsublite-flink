@@ -32,7 +32,7 @@ public class SerializingPublisher<T> implements BulkWaitPublisher<Tuple<T, Insta
   }
 
   @Override
-  public void publish(Tuple<T, Instant> message) {
+  public void publish(Tuple<T, Instant> message) throws InterruptedException {
     inner.publish(schema.serialize(message.x(), message.y()));
   }
 
