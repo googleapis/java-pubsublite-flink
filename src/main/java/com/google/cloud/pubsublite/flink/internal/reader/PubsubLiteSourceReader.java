@@ -17,8 +17,8 @@ package com.google.cloud.pubsublite.flink.internal.reader;
 
 import com.google.cloud.pubsublite.flink.internal.split.SubscriptionPartitionSplit;
 import com.google.cloud.pubsublite.flink.internal.split.SubscriptionPartitionSplitState;
+import com.google.cloud.pubsublite.internal.CursorClient;
 import java.util.*;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.flink.api.connector.source.SourceReaderContext;
@@ -34,7 +34,7 @@ public class PubsubLiteSourceReader<T>
 
   public PubsubLiteSourceReader(
       RecordEmitter<Record<T>, T, SubscriptionPartitionSplitState> recordEmitter,
-      Consumer<SubscriptionPartitionSplit> cursorCommitter,
+      CursorClient cursorCommitter,
       Supplier<SplitReader<Record<T>, SubscriptionPartitionSplit>> splitReaderSupplier,
       Configuration config,
       SourceReaderContext context) {
@@ -77,5 +77,14 @@ public class PubsubLiteSourceReader<T>
         map.values().stream()
             .map(SubscriptionPartitionSplitState::toSplit)
             .collect(Collectors.toList()));
+  }
+
+  @Override
+  public void close() throws Exception {
+    try {
+      checkpointCursorCommitter.close();
+    } finally {
+      super.close();
+    }
   }
 }

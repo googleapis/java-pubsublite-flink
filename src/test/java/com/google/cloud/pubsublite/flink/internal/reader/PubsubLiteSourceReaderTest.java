@@ -17,21 +17,23 @@ package com.google.cloud.pubsublite.flink.internal.reader;
 
 import static com.google.cloud.pubsublite.internal.testing.UnitTestExamples.exampleSubscriptionPath;
 import static com.google.common.truth.Truth.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.api.core.ApiFutures;
 import com.google.cloud.pubsublite.Offset;
 import com.google.cloud.pubsublite.Partition;
 import com.google.cloud.pubsublite.SequencedMessage;
 import com.google.cloud.pubsublite.flink.MessageTimestampExtractor;
 import com.google.cloud.pubsublite.flink.PubsubLiteDeserializationSchema;
 import com.google.cloud.pubsublite.flink.internal.split.SubscriptionPartitionSplit;
+import com.google.cloud.pubsublite.internal.CursorClient;
 import com.google.cloud.pubsublite.proto.Cursor;
 import com.google.cloud.pubsublite.proto.PubSubMessage;
 import com.google.common.collect.ImmutableList;
 import com.google.protobuf.ByteString;
 import java.util.Optional;
-import java.util.function.Consumer;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.connector.source.*;
 import org.apache.flink.configuration.Configuration;
@@ -46,7 +48,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class PubsubLiteSourceReaderTest {
   @Mock CompletablePullSubscriber.Factory mockFactory;
-  @Mock Consumer<SubscriptionPartitionSplit> mockCursorCommitter;
+  @Mock CursorClient mockCursorClient;
   @Mock SourceReaderContext mockContext;
   TestingReaderOutput<String> output = new TestingReaderOutput<>();
   SourceReader<String, SubscriptionPartitionSplit> reader;
@@ -75,7 +77,7 @@ public class PubsubLiteSourceReaderTest {
     reader =
         new PubsubLiteSourceReader<>(
             new PubsubLiteRecordEmitter<>(),
-            mockCursorCommitter,
+            mockCursorClient,
             () ->
                 new DeserializingSplitReader<>(
                     new MessageSplitReader(mockFactory),
@@ -83,6 +85,8 @@ public class PubsubLiteSourceReaderTest {
                     MessageTimestampExtractor.publishTimeExtractor()),
             new Configuration(),
             mockContext);
+    when(mockCursorClient.commitCursor(any(), any(), any()))
+        .thenReturn(ApiFutures.immediateFuture(null));
   }
 
   @Test
@@ -100,8 +104,8 @@ public class PubsubLiteSourceReaderTest {
 
     reader.snapshotState(1);
     reader.notifyCheckpointComplete(1);
-    verify(mockCursorCommitter).accept(makeSplit(Partition.of(0), Offset.of(2)));
-    verify(mockCursorCommitter).accept(makeSplit(Partition.of(0), Offset.of(2)));
+    verify(mockCursorClient).commitCursor(exampleSubscriptionPath(), Partition.of(0), Offset.of(2));
+    verify(mockCursorClient).commitCursor(exampleSubscriptionPath(), Partition.of(1), Offset.of(3));
 
     while (output.getEmittedRecords().size() < 6) {
       reader.pollNext(output);

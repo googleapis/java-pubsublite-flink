@@ -70,7 +70,7 @@ public class PubsubLiteSource<OutputT>
         });
     return new PubsubLiteSourceReader<>(
         new PubsubLiteRecordEmitter<>(),
-        settings.getCursorCommitter(),
+        settings.getCursorClient(),
         settings.getSplitReaderSupplier(),
         new Configuration(),
         readerContext);
