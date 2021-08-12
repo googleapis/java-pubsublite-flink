@@ -20,7 +20,7 @@ import com.google.cloud.pubsublite.internal.CheckedApiException;
 // Thread-compatible.
 public interface BulkWaitPublisher<T> {
 
-  void publish(T message);
+  void publish(T message) throws InterruptedException;
 
   void waitUntilNoOutstandingPublishes() throws CheckedApiException;
 }

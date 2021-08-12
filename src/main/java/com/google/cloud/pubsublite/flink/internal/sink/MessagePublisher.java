@@ -22,21 +22,47 @@ import com.google.cloud.pubsublite.MessageMetadata;
 import com.google.cloud.pubsublite.internal.CheckedApiException;
 import com.google.cloud.pubsublite.internal.ExtractStatus;
 import com.google.cloud.pubsublite.internal.Publisher;
+import com.google.cloud.pubsublite.internal.wire.SystemExecutors;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Semaphore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MessagePublisher implements BulkWaitPublisher<Message> {
+  private static final Logger LOG = LoggerFactory.getLogger(MessagePublisher.class);
   private final Publisher<MessageMetadata> publisher;
   private final List<ApiFuture<MessageMetadata>> publishes;
 
-  public MessagePublisher(Publisher<MessageMetadata> publisher) {
+  private final int maxBytesOutstanding;
+  private final Semaphore bytesOutstanding;
+
+  public MessagePublisher(Publisher<MessageMetadata> publisher, int maxBytesOutstanding) {
     this.publisher = publisher;
     this.publishes = new ArrayList<>();
+    this.maxBytesOutstanding = maxBytesOutstanding;
+    this.bytesOutstanding = new Semaphore(maxBytesOutstanding);
+  }
+
+  private int getAccountedSize(Message message) {
+    long size = message.toProto().getSerializedSize();
+    if (size > maxBytesOutstanding) {
+      return maxBytesOutstanding;
+    }
+    return Math.toIntExact(size);
   }
 
   @Override
-  public void publish(Message message) {
-    publishes.add(publisher.publish(message));
+  public void publish(Message message) throws InterruptedException {
+    final int size = getAccountedSize(message);
+    if (!bytesOutstanding.tryAcquire()) {
+      LOG.warn(
+          "Publisher flow controlled due to too many bytes (>{}) outstanding", maxBytesOutstanding);
+      bytesOutstanding.acquire(size);
+    }
+    ApiFuture<MessageMetadata> future = publisher.publish(message);
+    future.addListener(() -> bytesOutstanding.release(size), SystemExecutors.getAlarmExecutor());
+    publishes.add(future);
   }
 
   @Override

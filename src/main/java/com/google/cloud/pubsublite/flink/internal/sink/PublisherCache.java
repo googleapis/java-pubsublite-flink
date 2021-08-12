@@ -25,9 +25,13 @@ import com.google.cloud.pubsublite.internal.wire.SystemExecutors;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.errorprone.annotations.concurrent.GuardedBy;
 import java.util.HashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** A map of working publishers by PublisherOptions. */
 public class PublisherCache<T> implements AutoCloseable {
+  private static final Logger LOG = LoggerFactory.getLogger(PublisherCache.class);
+
   interface PublisherFactory<T> {
     Publisher<MessageMetadata> New(T options);
   }
@@ -46,6 +50,7 @@ public class PublisherCache<T> implements AutoCloseable {
   }
 
   public synchronized Publisher<MessageMetadata> get(T options) throws ApiException {
+    LOG.info("Requesting a publisher for options {}", options);
     Publisher<MessageMetadata> publisher = livePublishers.get(options);
     if (publisher != null) {
       return publisher;
@@ -55,11 +60,13 @@ public class PublisherCache<T> implements AutoCloseable {
         new Listener() {
           @Override
           public void failed(State s, Throwable t) {
+            LOG.error("Publisher for options {} failed with exception", options, t);
             evict(options);
           }
         },
         SystemExecutors.getAlarmExecutor());
     publisher.startAsync().awaitRunning();
+    LOG.info("Successfully started publisher for options {}", options);
     livePublishers.put(options, publisher);
     return publisher;
   }
@@ -71,6 +78,7 @@ public class PublisherCache<T> implements AutoCloseable {
         new Listener() {
           @Override
           public void failed(State s, Throwable t) {
+            LOG.error("Publisher for options {} failed with exception", options, t);
             evict(options);
           }
         },
