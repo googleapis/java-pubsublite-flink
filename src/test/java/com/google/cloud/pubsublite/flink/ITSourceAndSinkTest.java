@@ -162,6 +162,7 @@ public class ITSourceAndSinkTest {
     }
     CollectSink.clear();
     staticSet.clear();
+    StreamExecutionEnvironment.getExecutionEnvironment().setParallelism(2).enableCheckpointing(100);
   }
 
   @After
@@ -179,8 +180,6 @@ public class ITSourceAndSinkTest {
     Publisher<MessageMetadata> publisher = getPublisher();
 
     StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-    env.setParallelism(2);
-    env.enableCheckpointing(100);
     env.fromSource(
             new PubsubLiteSource<>(sourceSettings().build()),
             WatermarkStrategy.noWatermarks(),
@@ -194,7 +193,7 @@ public class ITSourceAndSinkTest {
                 .collect(Collectors.toList()))
         .get();
 
-    while (CollectSink.values().size() < 100) {
+    while (CollectSink.values().size() < INTEGER_STRINGS.size()) {
       if (client.getJobExecutionResult().isCompletedExceptionally()) {
         client.getJobExecutionResult().get();
       }
@@ -213,8 +212,6 @@ public class ITSourceAndSinkTest {
         (path, partition) -> (PartitionFinishedCondition) message -> Result.FINISH_AFTER;
 
     StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-    env.setParallelism(2);
-    env.enableCheckpointing(100);
     env.fromSource(
             new PubsubLiteSource<>(
                 sourceSettings()
@@ -242,10 +239,7 @@ public class ITSourceAndSinkTest {
 
     Publisher<MessageMetadata> publisher = getPublisher();
 
-    StreamExecutionEnvironment env =
-        StreamExecutionEnvironment.getExecutionEnvironment()
-            .setParallelism(2)
-            .enableCheckpointing(100);
+    StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
     env.setRestartStrategy(
         RestartStrategies.fixedDelayRestart(3, Time.of(10, TimeUnit.MILLISECONDS)));
     env.fromSource(
@@ -268,7 +262,7 @@ public class ITSourceAndSinkTest {
                 .collect(Collectors.toList()))
         .get();
 
-    while (CollectSink.values().size() < 100) {
+    while (CollectSink.values().size() < INTEGER_STRINGS.size()) {
       if (client.getJobExecutionResult().isCompletedExceptionally()) {
         client.getJobExecutionResult().get();
       }
@@ -280,10 +274,7 @@ public class ITSourceAndSinkTest {
 
   @Test
   public void testSink() throws Exception {
-    StreamExecutionEnvironment env =
-        StreamExecutionEnvironment.getExecutionEnvironment()
-            .setParallelism(2)
-            .enableCheckpointing(100);
+    StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
     env.fromCollection(INTEGER_STRINGS)
         .addSink(new PubsubLiteSink<>(sinkSettings().build()))
         .name("PSL Sink");
@@ -296,7 +287,7 @@ public class ITSourceAndSinkTest {
 
     JobClient client = env.executeAsync();
 
-    while (CollectSink.values().size() < 100) {
+    while (CollectSink.values().size() < INTEGER_STRINGS.size()) {
       if (client.getJobExecutionResult().isCompletedExceptionally()) {
         client.getJobExecutionResult().get();
       }
@@ -324,10 +315,7 @@ public class ITSourceAndSinkTest {
         .publish(any());
     PerServerPublisherCache.getCache().set(sinkSettings().build().getPublisherConfig(), publisher);
 
-    StreamExecutionEnvironment env =
-        StreamExecutionEnvironment.getExecutionEnvironment()
-            .setParallelism(2)
-            .enableCheckpointing(100);
+    StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
     env.setRestartStrategy(
         RestartStrategies.fixedDelayRestart(3, Time.of(10, TimeUnit.MILLISECONDS)));
 
@@ -343,7 +331,7 @@ public class ITSourceAndSinkTest {
 
     JobClient client = env.executeAsync();
 
-    while (CollectSink.values().size() < 100) {
+    while (CollectSink.values().size() < INTEGER_STRINGS.size()) {
       if (client.getJobExecutionResult().isCompletedExceptionally()) {
         client.getJobExecutionResult().get();
       }
