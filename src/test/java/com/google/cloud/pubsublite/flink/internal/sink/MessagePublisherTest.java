@@ -30,6 +30,7 @@ import com.google.cloud.pubsublite.MessageMetadata;
 import com.google.cloud.pubsublite.internal.CheckedApiException;
 import com.google.cloud.pubsublite.internal.Publisher;
 import com.google.cloud.pubsublite.internal.testing.FakeApiService;
+import com.google.protobuf.ByteString;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import org.junit.Before;
@@ -48,7 +49,7 @@ public class MessagePublisherTest {
 
   @Before
   public void setUp() {
-    messagePublisher = new MessagePublisher(fakeInnerPublisher);
+    messagePublisher = new MessagePublisher(fakeInnerPublisher, 1);
   }
 
   @Test
@@ -104,5 +105,34 @@ public class MessagePublisherTest {
     assertThat(checkpointFuture.isDone()).isFalse();
     future.set(MessageMetadata.of(examplePartition(), exampleOffset()));
     checkpointFuture.get();
+  }
+
+  @Test
+  public void testPublishesOfMaximumSizeSerialized() throws Exception {
+    Message message1 = Message.builder().setData(ByteString.copyFromUtf8("one")).build();
+    Message message2 = Message.builder().setData(ByteString.copyFromUtf8("two")).build();
+    SettableApiFuture<MessageMetadata> firstPublish = SettableApiFuture.create();
+    when(fakeInnerPublisher.publish(message1)).thenReturn(firstPublish);
+    when(fakeInnerPublisher.publish(message2))
+        .thenReturn(
+            ApiFutures.immediateFuture(MessageMetadata.of(examplePartition(), exampleOffset())));
+    messagePublisher.publish(message1);
+    verify(fakeInnerPublisher).publish(message1);
+
+    Future<?> secondPublish =
+        Executors.newSingleThreadExecutor()
+            .submit(
+                () -> {
+                  try {
+                    messagePublisher.publish(message2);
+                  } catch (Exception e) {
+                    throw new RuntimeException(e);
+                  }
+                });
+    // Sleep for a short time so that the second publish could complete if it wasn't waiting.
+    Thread.sleep(50);
+    assertThat(secondPublish.isDone()).isFalse();
+    firstPublish.set(MessageMetadata.of(examplePartition(), exampleOffset()));
+    secondPublish.get();
   }
 }

@@ -31,12 +31,14 @@ public class MessagePublisher implements BulkWaitPublisher<Message> {
   private final Publisher<MessageMetadata> publisher;
   private final List<ApiFuture<MessageMetadata>> publishes;
 
-  private static final int maxBytesOutstanding = 10*1024*1024;
-  private final Semaphore bytesOutstanding = new Semaphore(maxBytesOutstanding);
+  private final int maxBytesOutstanding;
+  private final Semaphore bytesOutstanding;
 
-  public MessagePublisher(Publisher<MessageMetadata> publisher) {
+  public MessagePublisher(Publisher<MessageMetadata> publisher, int maxBytesOutstanding) {
     this.publisher = publisher;
     this.publishes = new ArrayList<>();
+    this.maxBytesOutstanding = maxBytesOutstanding;
+    this.bytesOutstanding = new Semaphore(maxBytesOutstanding);
   }
 
   private int getAccountedSize(Message message) {

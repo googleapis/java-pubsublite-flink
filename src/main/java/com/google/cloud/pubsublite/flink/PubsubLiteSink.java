@@ -63,7 +63,8 @@ public class PubsubLiteSink<T> extends RichSinkFunction<T> implements Checkpoint
     publisher =
         new SerializingPublisher<>(
             new MessagePublisher(
-                PerServerPublisherCache.getOrCreate(settings.getPublisherConfig())),
+                PerServerPublisherCache.getOrCreate(settings.getPublisherConfig()),
+                settings.maxBytesOutstanding()),
             settings.serializationSchema());
   }
 

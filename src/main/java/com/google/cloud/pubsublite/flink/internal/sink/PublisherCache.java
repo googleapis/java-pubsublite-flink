@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 /** A map of working publishers by PublisherOptions. */
 public class PublisherCache<T> implements AutoCloseable {
   private static final Logger LOG = LoggerFactory.getLogger(PublisherCache.class);
+
   interface PublisherFactory<T> {
     Publisher<MessageMetadata> New(T options);
   }
@@ -56,7 +57,7 @@ public class PublisherCache<T> implements AutoCloseable {
     }
     publisher = factory.New(options);
     publisher.addListener(
-    new Listener() {
+        new Listener() {
           @Override
           public void failed(State s, Throwable t) {
             LOG.error("Publisher for options {} failed with exception", options, t);
