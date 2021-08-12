@@ -23,7 +23,7 @@ import java.io.Serializable;
 
 @AutoValue
 public abstract class PubsubLiteSinkSettings<InputT> implements Serializable {
-  public static final int DEFAULT_MAX_BYTES_OUTSTANDING = 10 * 1024 * 1024;
+  public static final int DEFAULT_MAX_BYTES_OUTSTANDING = 100 * 1024 * 1024;
   // Create a builder which will accept messages of type InputT and serialize them using the
   // provided serialization schema.
   public static <InputT> Builder<InputT> builder(PubsubLiteSerializationSchema<InputT> schema) {
@@ -40,7 +40,7 @@ public abstract class PubsubLiteSinkSettings<InputT> implements Serializable {
   // Required. The path of the topic to publish messages to.
   public abstract TopicPath topicPath();
 
-  // Optional. The maximum number of bytes a publisher may have outstanding.
+  // Optional. The maximum number of bytes a sink task may have outstanding.
   public abstract Integer maxBytesOutstanding();
 
   // Internal.
