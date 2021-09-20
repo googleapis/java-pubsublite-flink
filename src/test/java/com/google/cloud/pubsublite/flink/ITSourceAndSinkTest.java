@@ -30,7 +30,6 @@ import com.google.cloud.pubsublite.SubscriptionPath;
 import com.google.cloud.pubsublite.TopicName;
 import com.google.cloud.pubsublite.TopicPath;
 import com.google.cloud.pubsublite.cloudpubsub.FlowControlSettings;
-import com.google.cloud.pubsublite.flink.PartitionFinishedCondition.Result;
 import com.google.cloud.pubsublite.flink.internal.sink.PerServerPublisherCache;
 import com.google.cloud.pubsublite.internal.Publisher;
 import com.google.cloud.pubsublite.proto.Subscription;
@@ -207,16 +206,12 @@ public class ITSourceAndSinkTest {
   public void testBoundedSource() throws Exception {
     Publisher<MessageMetadata> publisher = getPublisher();
 
-    // A condition that accepts one message per partition.
-    PartitionFinishedCondition.Factory condition =
-        (path, partition) -> (PartitionFinishedCondition) message -> Result.FINISH_AFTER;
-
     StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
     env.fromSource(
             new PubsubLiteSource<>(
                 sourceSettings()
                     .setBoundedness(Boundedness.BOUNDED)
-                    .setPartitionFinishedCondition(condition)
+                    .setStopCondition(StopCondition.readToHead())
                     .build()),
             WatermarkStrategy.noWatermarks(),
             "testPSL")
@@ -231,7 +226,7 @@ public class ITSourceAndSinkTest {
 
     client.getJobExecutionResult().get();
     // One message per partition.
-    assertThat(CollectSink.values()).hasSize(2);
+    assertThat(CollectSink.values()).containsExactlyElementsIn(INTEGER_STRINGS);
   }
 
   @Test
