@@ -206,6 +206,12 @@ public class ITSourceAndSinkTest {
   public void testBoundedSource() throws Exception {
     Publisher<MessageMetadata> publisher = getPublisher();
 
+    ApiFutures.allAsList(
+            INTEGER_STRINGS.stream()
+                .map(v -> publisher.publish(messageFromString(v)))
+                .collect(Collectors.toList()))
+        .get();
+
     StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
     env.fromSource(
             new PubsubLiteSource<>(
@@ -216,16 +222,7 @@ public class ITSourceAndSinkTest {
             WatermarkStrategy.noWatermarks(),
             "testPSL")
         .addSink(new CollectSink());
-    JobClient client = env.executeAsync();
-
-    ApiFutures.allAsList(
-            INTEGER_STRINGS.stream()
-                .map(v -> publisher.publish(messageFromString(v)))
-                .collect(Collectors.toList()))
-        .get();
-
-    client.getJobExecutionResult().get();
-    // One message per partition.
+    env.execute();
     assertThat(CollectSink.values()).containsExactlyElementsIn(INTEGER_STRINGS);
   }
 
