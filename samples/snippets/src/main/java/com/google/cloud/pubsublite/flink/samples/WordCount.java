@@ -1,4 +1,4 @@
-package java.pubsublite.flink;
+package com.google.cloud.pubsublite.flink.samples;
 
 import com.google.cloud.pubsublite.SequencedMessage;
 import com.google.cloud.pubsublite.SubscriptionPath;
@@ -10,20 +10,19 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 
 public class WordCount {
 
-    public static void main(String[] args) throws Exception {
-      PubsubLiteSourceSettings<SequencedMessage> settings = PubsubLiteSourceSettings
-          .messagesBuilder()
-          .setFlowControlSettings(FlowControlSettings.builder()
-              .setBytesOutstanding(1000L)
-              .setMessagesOutstanding(1000L).build())
-          .setSubscriptionPath(SubscriptionPath.parse("yolo"))
-          .build();
+  public static void main(String[] args) throws Exception {
+    PubsubLiteSourceSettings<SequencedMessage> settings =
+        PubsubLiteSourceSettings.messagesBuilder()
+            .setFlowControlSettings(
+                FlowControlSettings.builder()
+                    .setBytesOutstanding(1000L)
+                    .setMessagesOutstanding(1000L)
+                    .build())
+            .setSubscriptionPath(SubscriptionPath.parse("yolo"))
+            .build();
 
-
-      StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-      env.fromSource(
-          new PubsubLiteSource<>(settings), WatermarkStrategy.noWatermarks(), "Source");
-      env.execute();
-    }
+    StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+    env.fromSource(new PubsubLiteSource<>(settings), WatermarkStrategy.noWatermarks(), "Source");
+    env.execute();
   }
-
+}

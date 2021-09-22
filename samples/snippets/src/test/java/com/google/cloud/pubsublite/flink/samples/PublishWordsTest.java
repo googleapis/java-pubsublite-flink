@@ -1,4 +1,4 @@
-package pubsublite.flink;
+package com.google.cloud.pubsublite.flink.samples;
 
 /*
  * Copyright 2021 Google LLC
@@ -16,30 +16,14 @@ package pubsublite.flink;
  * limitations under the License.
  */
 
-import static com.google.common.truth.Truth.assertThat;
-
-import com.google.api.core.ApiFutures;
 import com.google.cloud.pubsublite.AdminClient;
 import com.google.cloud.pubsublite.AdminClientSettings;
 import com.google.cloud.pubsublite.CloudZone;
-import com.google.cloud.pubsublite.Message;
-import com.google.cloud.pubsublite.MessageMetadata;
 import com.google.cloud.pubsublite.ProjectId;
 import com.google.cloud.pubsublite.SubscriptionName;
 import com.google.cloud.pubsublite.SubscriptionPath;
 import com.google.cloud.pubsublite.TopicName;
 import com.google.cloud.pubsublite.TopicPath;
-import com.google.cloud.pubsublite.cloudpubsub.FlowControlSettings;
-import com.google.cloud.pubsublite.flink.PartitionFinishedCondition;
-import com.google.cloud.pubsublite.flink.PartitionFinishedCondition.Result;
-import com.google.cloud.pubsublite.flink.PubsubLiteDeserializationSchema;
-import com.google.cloud.pubsublite.flink.PubsubLiteSerializationSchema;
-import com.google.cloud.pubsublite.flink.PubsubLiteSink;
-import com.google.cloud.pubsublite.flink.PubsubLiteSinkSettings;
-import com.google.cloud.pubsublite.flink.PubsubLiteSource;
-import com.google.cloud.pubsublite.flink.PubsubLiteSourceSettings;
-import com.google.cloud.pubsublite.flink.internal.sink.PerServerPublisherCache;
-import com.google.cloud.pubsublite.internal.Publisher;
 import com.google.cloud.pubsublite.proto.Subscription;
 import com.google.cloud.pubsublite.proto.Subscription.DeliveryConfig;
 import com.google.cloud.pubsublite.proto.Subscription.DeliveryConfig.DeliveryRequirement;
@@ -48,24 +32,16 @@ import com.google.cloud.pubsublite.proto.Topic.PartitionConfig;
 import com.google.cloud.pubsublite.proto.Topic.PartitionConfig.Capacity;
 import com.google.cloud.pubsublite.proto.Topic.RetentionConfig;
 import com.google.common.collect.ImmutableList;
-import com.google.protobuf.ByteString;
 import java.io.Serializable;
-import java.pubsublite.flink.SimpleRead;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.apache.flink.api.common.eventtime.WatermarkStrategy;
-import org.apache.flink.api.common.restartstrategy.RestartStrategies;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
-import org.apache.flink.api.common.time.Time;
-import org.apache.flink.api.connector.source.Boundedness;
-import org.apache.flink.core.execution.JobClient;
 import org.apache.flink.runtime.testutils.MiniClusterResourceConfiguration;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.sink.SinkFunction;
@@ -93,7 +69,6 @@ public class PublishWordsTest {
               .setNumberSlotsPerTaskManager(2)
               .setNumberTaskManagers(1)
               .build());
-
 
   private AdminClient getAdminClient() {
     return AdminClient.create(AdminClientSettings.newBuilder().setRegion(ZONE.region()).build());
@@ -160,10 +135,9 @@ public class PublishWordsTest {
 
   @Test
   public void testSource() throws Exception {
-    SimpleRead.main(new String[]{});
+    SimpleWrite.main(new String[] {});
+    SimpleRead.main(new String[] {});
   }
-
-
 
   // A set of static strings for simulating persisted storage in pipelines.
   private static final Set<String> staticSet = Collections.synchronizedSet(new HashSet<>());
@@ -188,4 +162,3 @@ public class PublishWordsTest {
     }
   }
 }
-
