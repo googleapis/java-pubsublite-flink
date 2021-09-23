@@ -30,18 +30,18 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class MaybeCompleteSubscriberFactoryTest {
+public class ConditionallyCompleteSubscriberFactoryTest {
   @Mock PartitionFinishedCondition.Factory mockConditionFactory;
   @Mock PartitionFinishedCondition mockCondition;
   @Mock CompletablePullSubscriber.Factory mockSubscriberFactory;
   @Mock CompletablePullSubscriber mockSubscriber;
 
-  MaybeCompleteSubscriberFactory subscriberFactory;
+  ConditionallyCompleteSubscriberFactory subscriberFactory;
 
   @Before
   public void setUp() {
     subscriberFactory =
-        new MaybeCompleteSubscriberFactory(mockSubscriberFactory, mockConditionFactory);
+        new ConditionallyCompleteSubscriberFactory(mockSubscriberFactory, mockConditionFactory);
   }
 
   @Test

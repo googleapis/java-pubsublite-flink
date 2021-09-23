@@ -23,7 +23,10 @@ import com.google.cloud.pubsublite.flink.internal.split.SubscriptionPartitionSpl
 import com.google.cloud.pubsublite.internal.CheckedApiException;
 import java.util.Optional;
 
-public class MaybeCompleteSubscriberFactory implements CompletablePullSubscriber.Factory {
+// A completable pull subscriber factory which checks to see if the split is already finished and
+// if so, creates a completed subscriber. Otherwise it delegates subscriber creation to the
+// underlying factory.
+public class ConditionallyCompleteSubscriberFactory implements CompletablePullSubscriber.Factory {
 
   private static class FinishedSubscriber implements CompletablePullSubscriber {
     @Override
@@ -48,7 +51,7 @@ public class MaybeCompleteSubscriberFactory implements CompletablePullSubscriber
   private final CompletablePullSubscriber.Factory subscriberFactory;
   private final PartitionFinishedCondition.Factory conditionFactory;
 
-  public MaybeCompleteSubscriberFactory(
+  public ConditionallyCompleteSubscriberFactory(
       CompletablePullSubscriber.Factory subscriberFactory,
       PartitionFinishedCondition.Factory conditionFactory) {
     this.subscriberFactory = subscriberFactory;

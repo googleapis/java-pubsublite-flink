@@ -160,7 +160,7 @@ public abstract class PubsubLiteSourceSettings<OutputT> implements Serializable 
 
   CompletablePullSubscriber.Factory getSplitStateFactory() {
     PartitionFinishedCondition.Factory conditionFactory = stopCondition().toFinishCondition();
-    return new MaybeCompleteSubscriberFactory(
+    return new ConditionallyCompleteSubscriberFactory(
         (split) ->
             new CompletablePullSubscriberImpl(
                 new BlockingPullSubscriberImpl(getSubscriberFactory(split), flowControlSettings()),

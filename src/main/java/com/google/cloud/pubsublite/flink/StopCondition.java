@@ -22,6 +22,7 @@ import com.google.cloud.pubsublite.Partition;
 import com.google.cloud.pubsublite.SubscriptionPath;
 import com.google.cloud.pubsublite.TopicPath;
 import com.google.cloud.pubsublite.flink.internal.reader.PartitionFinishedCondition;
+import com.google.cloud.pubsublite.flink.internal.reader.PartitionFinishedCondition.Factory;
 import com.google.cloud.pubsublite.flink.internal.reader.PartitionFinishedCondition.Result;
 import com.google.cloud.pubsublite.internal.ExtractStatus;
 import com.google.cloud.pubsublite.internal.TopicStatsClient;
@@ -34,88 +35,111 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
-public class StopCondition implements Serializable {
-  enum Condition {
-    INDEFINITE,
-    HEAD,
-    OFFSETS,
-  }
-
-  private final Condition condition;
-  private final Map<Partition, Offset> finalSplits;
-
-  private StopCondition(Condition condition, Map<Partition, Offset> finalSplits) {
-    this.condition = condition;
-    this.finalSplits = finalSplits;
-  }
-
-  private Map<Partition, Offset> getHeadOffsets(
-      SubscriptionPath path, AdminClient admin, TopicStatsClient topicStats) {
-    long partitionCount;
-    List<Cursor> cursors;
-    try {
-      TopicPath topicPath = TopicPath.parse(admin.getSubscription(path).get().getTopic());
-      partitionCount = admin.getTopicPartitionCount(topicPath).get();
-      cursors =
-          ApiFutures.allAsList(
-                  LongStream.range(0, partitionCount)
-                      .mapToObj(
-                          partition ->
-                              topicStats.computeHeadCursor(topicPath, Partition.of(partition)))
-                      .collect(Collectors.toList()))
-              .get();
-    } catch (Throwable t) {
-      throw ExtractStatus.toCanonical(t).underlying;
-    }
-    ImmutableMap.Builder<Partition, Offset> offsets = ImmutableMap.builder();
-    for (int i = 0; i < partitionCount; i++) {
-      offsets.put(Partition.of(i), Offset.of(cursors.get(i).getOffset()));
-    }
-    return offsets.build();
-  }
-
+public abstract class StopCondition implements Serializable {
   // Called to convert conditions with placeholder values like "HEAD" to an offset based condition.
-  StopCondition canonicalize(
+  abstract StopCondition canonicalize(
       SubscriptionPath path,
       Supplier<AdminClient> adminClient,
-      Supplier<TopicStatsClient> topicStatsClient) {
-    switch (condition) {
-      case INDEFINITE:
-      case OFFSETS:
-        return this;
-      case HEAD:
-        return readToOffsets(getHeadOffsets(path, adminClient.get(), topicStatsClient.get()));
-      default:
-        throw new IllegalStateException("illegal enum value " + condition);
+      Supplier<TopicStatsClient> topicStatsClient);
+
+  abstract PartitionFinishedCondition.Factory toFinishCondition();
+
+  private static class ContinueIndefinitely extends StopCondition {
+    @Override
+    public StopCondition canonicalize(
+        SubscriptionPath path,
+        Supplier<AdminClient> adminClient,
+        Supplier<TopicStatsClient> topicStatsClient) {
+      return this;
+    }
+
+    @Override
+    public Factory toFinishCondition() {
+      return (subscription, partition) -> offset -> Result.CONTINUE;
     }
   }
 
-  PartitionFinishedCondition.Factory toFinishCondition() {
-    switch (condition) {
-      case INDEFINITE:
-        return (subscription, partition) -> offset -> Result.CONTINUE;
-      case OFFSETS:
-        return (subscription, partition) ->
-            offset -> {
-              Offset stopOffset = finalSplits.getOrDefault(partition, Offset.of(0L));
-              if (offset.value() >= stopOffset.value()) return Result.FINISH_BEFORE;
-              if (offset.value() == stopOffset.value() - 1) return Result.FINISH_AFTER;
-              return Result.CONTINUE;
-            };
-      default:
-        throw new IllegalStateException("illegal enum value " + condition);
+  private static class ReadToOffsets extends StopCondition {
+    private final Map<Partition, Offset> offsets;
+
+    private ReadToOffsets(Map<Partition, Offset> offsets) {
+      this.offsets = offsets;
+    }
+
+    @Override
+    public StopCondition canonicalize(
+        SubscriptionPath path,
+        Supplier<AdminClient> adminClient,
+        Supplier<TopicStatsClient> topicStatsClient) {
+      return this;
+    }
+
+    @Override
+    public Factory toFinishCondition() {
+      return (subscription, partition) ->
+          offset -> {
+            Offset stopOffset = offsets.getOrDefault(partition, Offset.of(0L));
+            if (offset.value() >= stopOffset.value()) return Result.FINISH_BEFORE;
+            if (offset.value() == stopOffset.value() - 1) return Result.FINISH_AFTER;
+            return Result.CONTINUE;
+          };
     }
   }
 
+  private static class ReadToHead extends StopCondition {
+    private static Map<Partition, Offset> getHeadOffsets(
+        SubscriptionPath path, AdminClient admin, TopicStatsClient topicStats) {
+      long partitionCount;
+      List<Cursor> cursors;
+      try {
+        TopicPath topicPath = TopicPath.parse(admin.getSubscription(path).get().getTopic());
+        partitionCount = admin.getTopicPartitionCount(topicPath).get();
+        cursors =
+            ApiFutures.allAsList(
+                    LongStream.range(0, partitionCount)
+                        .mapToObj(
+                            partition ->
+                                topicStats.computeHeadCursor(topicPath, Partition.of(partition)))
+                        .collect(Collectors.toList()))
+                .get();
+      } catch (Throwable t) {
+        throw ExtractStatus.toCanonical(t).underlying;
+      }
+      ImmutableMap.Builder<Partition, Offset> offsets = ImmutableMap.builder();
+      for (int i = 0; i < partitionCount; i++) {
+        offsets.put(Partition.of(i), Offset.of(cursors.get(i).getOffset()));
+      }
+      return offsets.build();
+    }
+
+    @Override
+    public StopCondition canonicalize(
+        SubscriptionPath path,
+        Supplier<AdminClient> adminClient,
+        Supplier<TopicStatsClient> topicStatsClient) {
+      return readToOffsets(getHeadOffsets(path, adminClient.get(), topicStatsClient.get()));
+    }
+
+    @Override
+    public Factory toFinishCondition() {
+      throw new IllegalStateException("Cannot translate to stop condition before canonicalizing");
+    }
+  }
+
+  // The flink source will continue reading messages indefinitely.
   public static StopCondition continueIndefinitely() {
-    return new StopCondition(Condition.INDEFINITE, ImmutableMap.of());
+    return new ContinueIndefinitely();
   }
 
-  public static StopCondition readToHead() {
-    return new StopCondition(Condition.HEAD, ImmutableMap.of());
-  }
-
+  // The flink source will read to the specified offset for each partition. If no offset is supplied
+  // for a partition, the source will not read any messages from that partition.
   public static StopCondition readToOffsets(Map<Partition, Offset> offsets) {
-    return new StopCondition(Condition.OFFSETS, offsets);
+    return new ReadToOffsets(offsets);
+  }
+
+  // Read to the head offset for every partition. Head is evaluated when the source settings are
+  // built.
+  public static StopCondition readToHead() {
+    return new ReadToHead();
   }
 }
