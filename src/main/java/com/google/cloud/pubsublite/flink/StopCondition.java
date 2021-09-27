@@ -37,22 +37,16 @@ import java.util.stream.LongStream;
 
 public abstract class StopCondition implements Serializable {
   // Called to convert conditions with placeholder values like "HEAD" to an offset based condition.
-  abstract StopCondition canonicalize(
+  StopCondition canonicalize(
       SubscriptionPath path,
       Supplier<AdminClient> adminClient,
-      Supplier<TopicStatsClient> topicStatsClient);
+      Supplier<TopicStatsClient> topicStatsClient) {
+    return this;
+  }
 
   abstract PartitionFinishedCondition.Factory toFinishCondition();
 
   private static class ContinueIndefinitely extends StopCondition {
-    @Override
-    public StopCondition canonicalize(
-        SubscriptionPath path,
-        Supplier<AdminClient> adminClient,
-        Supplier<TopicStatsClient> topicStatsClient) {
-      return this;
-    }
-
     @Override
     public Factory toFinishCondition() {
       return (subscription, partition) -> offset -> Result.CONTINUE;
@@ -64,14 +58,6 @@ public abstract class StopCondition implements Serializable {
 
     private ReadToOffsets(Map<Partition, Offset> offsets) {
       this.offsets = offsets;
-    }
-
-    @Override
-    public StopCondition canonicalize(
-        SubscriptionPath path,
-        Supplier<AdminClient> adminClient,
-        Supplier<TopicStatsClient> topicStatsClient) {
-      return this;
     }
 
     @Override
