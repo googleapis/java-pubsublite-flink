@@ -1,5 +1,3 @@
-package com.google.cloud.pubsublite.flink.samples;
-
 /*
  * Copyright 2021 Google LLC
  *
@@ -15,6 +13,8 @@ package com.google.cloud.pubsublite.flink.samples;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package com.google.cloud.pubsublite.flink.samples;
+
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.cloud.pubsublite.AdminClient;
