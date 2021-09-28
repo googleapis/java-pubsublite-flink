@@ -15,6 +15,7 @@ package com.google.cloud.pubsublite.flink.samples;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import static com.google.common.truth.Truth.assertThat;
 
 import com.google.cloud.pubsublite.AdminClient;
 import com.google.cloud.pubsublite.AdminClientSettings;
@@ -31,27 +32,22 @@ import com.google.cloud.pubsublite.proto.Topic;
 import com.google.cloud.pubsublite.proto.Topic.PartitionConfig;
 import com.google.cloud.pubsublite.proto.Topic.PartitionConfig.Capacity;
 import com.google.cloud.pubsublite.proto.Topic.RetentionConfig;
-import com.google.common.collect.ImmutableList;
-import java.io.Serializable;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.runtime.testutils.MiniClusterResourceConfiguration;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.api.functions.sink.SinkFunction;
 import org.apache.flink.test.util.MiniClusterWithClientResource;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-public class PublishWordsTest {
+public class SamplesTest {
   // Callers must set GCLOUD_PROJECT
   private static final ProjectId PROJECT = ProjectId.of("palmeretest");
   private static final CloudZone ZONE = CloudZone.parse("us-central1-b");
@@ -118,8 +114,6 @@ public class PublishWordsTest {
       client.createTopic(topic).get();
       client.createSubscription(subscription).get();
     }
-    CollectSink.clear();
-    staticSet.clear();
     StreamExecutionEnvironment.getExecutionEnvironment().setParallelism(2).enableCheckpointing(100);
   }
 
@@ -129,36 +123,36 @@ public class PublishWordsTest {
       client.deleteTopic(topicPath).get();
       client.deleteSubscription(subscriptionPath).get();
     }
-    CollectSink.clear();
-    staticSet.clear();
   }
 
   @Test
-  public void testSource() throws Exception {
-    SimpleWrite.main(new String[] {"--topic", topicPath.toString()});
-    SimpleRead.main(new String[] {"--subscription", subscriptionPath.toString()});
+  public void testSimpleReadWrites() throws Exception {
+    ByteArrayOutputStream outContent = new ByteArrayOutputStream();
+    PrintStream originalOut = System.out;
+    try {
+      System.setOut(new PrintStream(outContent));
+      SimpleWrite.main(new String[] {"--topic", topicPath.toString()});
+      SimpleRead.main(new String[] {"--subscription", subscriptionPath.toString()});
+    } finally {
+      System.setOut(originalOut);
+    }
+    String output = outContent.toString();
+    for (int i = 0; i < 1000; i++) {
+      assertThat(output).contains("message " + i);
+    }
   }
 
-  // A set of static strings for simulating persisted storage in pipelines.
-  private static final Set<String> staticSet = Collections.synchronizedSet(new HashSet<>());
-
-  // A testing sink which stores messages in a static map to prevent them from being lost when
-  // the sink is serialized.
-  private static class CollectSink implements SinkFunction<String>, Serializable {
-    // Note: doesn't store duplicates.
-    private static final Set<String> collector = Collections.synchronizedSet(new HashSet<>());
-
-    @Override
-    public void invoke(String value) throws Exception {
-      collector.add(value);
+  @Test
+  public void testWordCount() throws Exception {
+    ByteArrayOutputStream outContent = new ByteArrayOutputStream();
+    PrintStream originalOut = System.out;
+    try {
+      System.setOut(new PrintStream(outContent));
+      PublishWords.main(new String[] {"--topic", topicPath.toString()});
+      WordCount.main(new String[] {"--subscription", subscriptionPath.toString()});
+    } finally {
+      System.setOut(originalOut);
     }
-
-    public static Collection<String> values() {
-      return ImmutableList.copyOf(collector);
-    }
-
-    public static void clear() {
-      collector.clear();
-    }
+    System.out.println(outContent.toString());
   }
 }

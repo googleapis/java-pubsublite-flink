@@ -11,19 +11,24 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 
 public class SimpleWrite {
 
-    public static void main(String[] args) throws Exception {
-      ParameterTool parameter = ParameterTool.fromArgs(args);
+  public static void main(String[] args) throws Exception {
+    ParameterTool parameter = ParameterTool.fromArgs(args);
 
-      PubsubLiteSinkSettings<Message> settings = PubsubLiteSinkSettings
-          .messagesBuilder()
-          .setTopicPath(TopicPath.parse(parameter.get("topic")))
-          .setMaxBytesOutstanding(1000)
-          .build();
+    PubsubLiteSinkSettings<Message> settings =
+        PubsubLiteSinkSettings.messagesBuilder()
+            .setTopicPath(TopicPath.parse(parameter.get("topic")))
+            .setMaxBytesOutstanding(1000)
+            .build();
 
-      StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-      env.fromSequence(0, 1000).map(
-          s -> Message.fromProto(PubSubMessage.newBuilder().setData(ByteString.copyFromUtf8(Long.toString(s))).build())
-      ).addSink(new PubsubLiteSink<>(settings));
-      env.execute();
-    }
+    StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+    env.fromSequence(0, 999)
+        .map(
+            s ->
+                Message.fromProto(
+                    PubSubMessage.newBuilder()
+                        .setData(ByteString.copyFromUtf8("message " + s))
+                        .build()))
+        .addSink(new PubsubLiteSink<>(settings));
+    env.execute();
   }
+}

@@ -16,19 +16,21 @@ public class SimpleRead {
 
   public static void main(String[] args) throws Exception {
     ParameterTool parameter = ParameterTool.fromArgs(args);
-    PubsubLiteSourceSettings<SequencedMessage> settings = PubsubLiteSourceSettings
-        .messagesBuilder()
-        .setFlowControlSettings(FlowControlSettings.builder()
-            .setBytesOutstanding(1000L)
-            .setMessagesOutstanding(1000L).build())
-        .setSubscriptionPath(SubscriptionPath.parse(parameter.get("subscription")))
-        .setBoundedness(Boundedness.BOUNDED)
-        .setStopCondition(StopCondition.readToHead())
-        .build();
+    PubsubLiteSourceSettings<SequencedMessage> settings =
+        PubsubLiteSourceSettings.messagesBuilder()
+            .setFlowControlSettings(
+                FlowControlSettings.builder()
+                    .setBytesOutstanding(1000L)
+                    .setMessagesOutstanding(1000L)
+                    .build())
+            .setSubscriptionPath(SubscriptionPath.parse(parameter.get("subscription")))
+            .setBoundedness(Boundedness.BOUNDED)
+            .setStopCondition(StopCondition.readToHead())
+            .build();
 
     StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-    env.fromSource(
-        new PubsubLiteSource<>(settings), WatermarkStrategy.noWatermarks(), "Source")
+    env.fromSource(new PubsubLiteSource<>(settings), WatermarkStrategy.noWatermarks(), "Source")
+        .map(m -> m.message().data().toStringUtf8())
         .addSink(new PrintSinkFunction<>());
     env.execute();
   }
