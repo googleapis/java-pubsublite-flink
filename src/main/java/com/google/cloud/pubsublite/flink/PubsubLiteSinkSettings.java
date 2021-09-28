@@ -51,7 +51,7 @@ public abstract class PubsubLiteSinkSettings<InputT> implements Serializable {
   }
 
   @AutoValue.Builder
-  abstract static class Builder<InputT> {
+  public abstract static class Builder<InputT> {
     // Required.
     public abstract Builder<InputT> setTopicPath(TopicPath value);
 

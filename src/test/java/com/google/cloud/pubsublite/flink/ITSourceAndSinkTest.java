@@ -30,7 +30,6 @@ import com.google.cloud.pubsublite.SubscriptionPath;
 import com.google.cloud.pubsublite.TopicName;
 import com.google.cloud.pubsublite.TopicPath;
 import com.google.cloud.pubsublite.cloudpubsub.FlowControlSettings;
-import com.google.cloud.pubsublite.flink.PartitionFinishedCondition.Result;
 import com.google.cloud.pubsublite.flink.internal.sink.PerServerPublisherCache;
 import com.google.cloud.pubsublite.internal.Publisher;
 import com.google.cloud.pubsublite.proto.Subscription;
@@ -207,31 +206,24 @@ public class ITSourceAndSinkTest {
   public void testBoundedSource() throws Exception {
     Publisher<MessageMetadata> publisher = getPublisher();
 
-    // A condition that accepts one message per partition.
-    PartitionFinishedCondition.Factory condition =
-        (path, partition) -> (PartitionFinishedCondition) message -> Result.FINISH_AFTER;
-
-    StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-    env.fromSource(
-            new PubsubLiteSource<>(
-                sourceSettings()
-                    .setBoundedness(Boundedness.BOUNDED)
-                    .setPartitionFinishedCondition(condition)
-                    .build()),
-            WatermarkStrategy.noWatermarks(),
-            "testPSL")
-        .addSink(new CollectSink());
-    JobClient client = env.executeAsync();
-
     ApiFutures.allAsList(
             INTEGER_STRINGS.stream()
                 .map(v -> publisher.publish(messageFromString(v)))
                 .collect(Collectors.toList()))
         .get();
 
-    client.getJobExecutionResult().get();
-    // One message per partition.
-    assertThat(CollectSink.values()).hasSize(2);
+    StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+    env.fromSource(
+            new PubsubLiteSource<>(
+                sourceSettings()
+                    .setBoundedness(Boundedness.BOUNDED)
+                    .setStopCondition(StopCondition.readToHead())
+                    .build()),
+            WatermarkStrategy.noWatermarks(),
+            "testPSL")
+        .addSink(new CollectSink());
+    env.execute();
+    assertThat(CollectSink.values()).containsExactlyElementsIn(INTEGER_STRINGS);
   }
 
   @Test
