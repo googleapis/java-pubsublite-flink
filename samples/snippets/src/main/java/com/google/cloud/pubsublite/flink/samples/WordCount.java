@@ -51,7 +51,9 @@ public class WordCount {
               .replaceAll("\\s+", " ")
               .toLowerCase();
       for (String word : line.split(" ")) {
-        out.collect(Tuple2.of(word, 1));
+        if(word.length() > 0) {
+          out.collect(Tuple2.of(word, 1));
+        }
       }
     }
   }

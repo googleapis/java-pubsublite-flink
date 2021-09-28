@@ -153,6 +153,7 @@ public class SamplesTest {
     } finally {
       System.setOut(originalOut);
     }
-    System.out.println(outContent.toString());
+    String output = outContent.toString();
+    assertThat(output).contains("the,24");
   }
 }
