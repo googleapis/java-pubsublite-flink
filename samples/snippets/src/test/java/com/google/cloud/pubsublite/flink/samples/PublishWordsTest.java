@@ -135,8 +135,8 @@ public class PublishWordsTest {
 
   @Test
   public void testSource() throws Exception {
-    SimpleWrite.main(new String[] {});
-    SimpleRead.main(new String[] {});
+    SimpleWrite.main(new String[] {"--topic", topicPath.toString()});
+    SimpleRead.main(new String[] {"--subscription", subscriptionPath.toString()});
   }
 
   // A set of static strings for simulating persisted storage in pipelines.

@@ -5,25 +5,25 @@ import com.google.cloud.pubsublite.TopicPath;
 import com.google.cloud.pubsublite.flink.PubsubLiteSink;
 import com.google.cloud.pubsublite.flink.PubsubLiteSinkSettings;
 import com.google.cloud.pubsublite.proto.PubSubMessage;
-import com.google.common.collect.ImmutableList;
+import com.google.protobuf.ByteString;
+import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 
 public class SimpleWrite {
 
-  public static void main(String[] args) throws Exception {
-    PubsubLiteSinkSettings<Message> settings =
-        PubsubLiteSinkSettings.messagesBuilder()
-            .setTopicPath(TopicPath.parse("yolo"))
-            .setMaxBytesOutstanding(1000)
-            .build();
+    public static void main(String[] args) throws Exception {
+      ParameterTool parameter = ParameterTool.fromArgs(args);
 
-    StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-    env.fromCollection(ImmutableList.of("a", "b"))
-        .map(
-            s -> {
-              return Message.fromProto(PubSubMessage.newBuilder().build());
-            })
-        .addSink(new PubsubLiteSink<Message>(settings));
-    env.execute();
+      PubsubLiteSinkSettings<Message> settings = PubsubLiteSinkSettings
+          .messagesBuilder()
+          .setTopicPath(TopicPath.parse(parameter.get("topic")))
+          .setMaxBytesOutstanding(1000)
+          .build();
+
+      StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+      env.fromSequence(0, 1000).map(
+          s -> Message.fromProto(PubSubMessage.newBuilder().setData(ByteString.copyFromUtf8(Long.toString(s))).build())
+      ).addSink(new PubsubLiteSink<>(settings));
+      env.execute();
+    }
   }
-}
