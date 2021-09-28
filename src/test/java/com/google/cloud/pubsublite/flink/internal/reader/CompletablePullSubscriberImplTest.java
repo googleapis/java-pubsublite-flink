@@ -24,8 +24,7 @@ import static org.mockito.Mockito.when;
 import com.google.api.core.ApiFutures;
 import com.google.cloud.pubsublite.Offset;
 import com.google.cloud.pubsublite.SequencedMessage;
-import com.google.cloud.pubsublite.flink.PartitionFinishedCondition;
-import com.google.cloud.pubsublite.flink.PartitionFinishedCondition.Result;
+import com.google.cloud.pubsublite.flink.internal.reader.PartitionFinishedCondition.Result;
 import com.google.cloud.pubsublite.internal.BlockingPullSubscriber;
 import com.google.cloud.pubsublite.internal.CheckedApiException;
 import java.util.Optional;
@@ -72,8 +71,8 @@ public class CompletablePullSubscriberImplTest {
         .thenReturn(Optional.of(message2))
         .thenReturn(Optional.of(message3));
 
-    when(mockCondition.partitionFinished(any(SequencedMessage.class))).thenReturn(Result.CONTINUE);
-    when(mockCondition.partitionFinished(message2)).thenReturn(Result.FINISH_BEFORE);
+    when(mockCondition.partitionFinished(any(Offset.class))).thenReturn(Result.CONTINUE);
+    when(mockCondition.partitionFinished(message2.offset())).thenReturn(Result.FINISH_BEFORE);
 
     assertThat(subscriber.messageIfAvailable()).isEqualTo(Optional.empty());
     assertThat(subscriber.messageIfAvailable()).isEqualTo(Optional.of(message1));
@@ -94,8 +93,8 @@ public class CompletablePullSubscriberImplTest {
         .thenReturn(Optional.of(message2))
         .thenReturn(Optional.of(message3));
 
-    when(mockCondition.partitionFinished(any(SequencedMessage.class))).thenReturn(Result.CONTINUE);
-    when(mockCondition.partitionFinished(message2)).thenReturn(Result.FINISH_AFTER);
+    when(mockCondition.partitionFinished(any(Offset.class))).thenReturn(Result.CONTINUE);
+    when(mockCondition.partitionFinished(message2.offset())).thenReturn(Result.FINISH_AFTER);
 
     assertThat(subscriber.messageIfAvailable()).isEqualTo(Optional.empty());
     assertThat(subscriber.messageIfAvailable()).isEqualTo(Optional.of(message1));

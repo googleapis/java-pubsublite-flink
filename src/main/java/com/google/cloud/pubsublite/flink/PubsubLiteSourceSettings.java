@@ -31,10 +31,11 @@ import com.google.cloud.pubsublite.SubscriptionPath;
 import com.google.cloud.pubsublite.cloudpubsub.FlowControlSettings;
 import com.google.cloud.pubsublite.flink.internal.reader.*;
 import com.google.cloud.pubsublite.flink.internal.split.SubscriptionPartitionSplit;
-import com.google.cloud.pubsublite.internal.BlockingPullSubscriber;
 import com.google.cloud.pubsublite.internal.BlockingPullSubscriberImpl;
 import com.google.cloud.pubsublite.internal.CursorClient;
 import com.google.cloud.pubsublite.internal.CursorClientSettings;
+import com.google.cloud.pubsublite.internal.TopicStatsClient;
+import com.google.cloud.pubsublite.internal.TopicStatsClientSettings;
 import com.google.cloud.pubsublite.internal.wire.PubsubContext;
 import com.google.cloud.pubsublite.internal.wire.RoutingMetadata;
 import com.google.cloud.pubsublite.internal.wire.SubscriberBuilder;
@@ -65,7 +66,7 @@ public abstract class PubsubLiteSourceSettings<OutputT> implements Serializable 
         .setDeserializationSchema(schema)
         .setBoundedness(Boundedness.CONTINUOUS_UNBOUNDED)
         .setTimestampSelector(MessageTimestampExtractor.publishTimeExtractor())
-        .setPartitionFinishedCondition(PartitionFinishedCondition.continueIndefinitely());
+        .setStopCondition(StopCondition.continueIndefinitely());
   }
 
   public static Builder<SequencedMessage> messagesBuilder() {
@@ -85,7 +86,7 @@ public abstract class PubsubLiteSourceSettings<OutputT> implements Serializable 
   public abstract MessageTimestampExtractor timestampSelector();
 
   // Optional
-  public abstract PartitionFinishedCondition.Factory partitionFinishedCondition();
+  public abstract StopCondition stopCondition();
 
   // Internal
   abstract PubsubLiteDeserializationSchema<OutputT> deserializationSchema();
@@ -93,6 +94,38 @@ public abstract class PubsubLiteSourceSettings<OutputT> implements Serializable 
   abstract @Nullable SerializableSupplier<AdminClient> adminClientSupplier();
 
   abstract @Nullable SerializableSupplier<CursorClient> cursorClientSupplier();
+
+  abstract @Nullable SerializableSupplier<TopicStatsClient> topicStatsClientSupplier();
+
+  AdminClient getAdminClient() {
+    if (adminClientSupplier() != null) {
+      return adminClientSupplier().get();
+    }
+    return AdminClient.create(
+        AdminClientSettings.newBuilder()
+            .setRegion(subscriptionPath().location().extractRegion())
+            .build());
+  }
+
+  TopicStatsClient getTopicStatsClient() {
+    if (topicStatsClientSupplier() != null) {
+      return topicStatsClientSupplier().get();
+    }
+    return TopicStatsClient.create(
+        TopicStatsClientSettings.newBuilder()
+            .setRegion(subscriptionPath().location().extractRegion())
+            .build());
+  }
+
+  CursorClient getCursorClient() {
+    if (cursorClientSupplier() != null) {
+      return cursorClientSupplier().get();
+    }
+    return CursorClient.create(
+        CursorClientSettings.newBuilder()
+            .setRegion(subscriptionPath().location().extractRegion())
+            .build());
+  }
 
   private static SubscriberServiceClient newSubscriberServiceClient(
       SubscriptionPath path, Partition partition) throws ApiException {
@@ -110,51 +143,29 @@ public abstract class PubsubLiteSourceSettings<OutputT> implements Serializable 
     }
   }
 
-  private static SubscriberFactory getSubscriberFactory(
-      SubscriptionPath path, Partition partition, SeekRequest seek) {
+  private static SubscriberFactory getSubscriberFactory(SubscriptionPartitionSplit split) {
     return (consumer) ->
         SubscriberBuilder.newBuilder()
-            .setSubscriptionPath(path)
-            .setPartition(partition)
-            .setServiceClient(newSubscriberServiceClient(path, partition))
+            .setSubscriptionPath(split.subscriptionPath())
+            .setPartition(split.partition())
+            .setServiceClient(
+                newSubscriberServiceClient(split.subscriptionPath(), split.partition()))
             .setMessageConsumer(consumer)
-            .setInitialLocation(seek)
+            .setInitialLocation(
+                SeekRequest.newBuilder()
+                    .setCursor(Cursor.newBuilder().setOffset(split.start().value()).build())
+                    .build())
             .build();
   }
 
-  AdminClient getAdminClient() {
-    if (adminClientSupplier() != null) {
-      return adminClientSupplier().get();
-    }
-    return AdminClient.create(
-        AdminClientSettings.newBuilder()
-            .setRegion(subscriptionPath().location().extractRegion())
-            .build());
-  }
-
-  CursorClient getCursorClient() {
-    if (cursorClientSupplier() != null) {
-      return cursorClientSupplier().get();
-    }
-    return CursorClient.create(
-        CursorClientSettings.newBuilder()
-            .setRegion(subscriptionPath().location().extractRegion())
-            .build());
-  }
-
   CompletablePullSubscriber.Factory getSplitStateFactory() {
-    return split -> {
-      SeekRequest seek =
-          SeekRequest.newBuilder()
-              .setCursor(Cursor.newBuilder().setOffset(split.start().value()).build())
-              .build();
-      SubscriberFactory factory =
-          getSubscriberFactory(split.subscriptionPath(), split.partition(), seek);
-
-      BlockingPullSubscriber b = new BlockingPullSubscriberImpl(factory, flowControlSettings());
-      return new CompletablePullSubscriberImpl(
-          b, partitionFinishedCondition().New(split.subscriptionPath(), split.partition()));
-    };
+    PartitionFinishedCondition.Factory conditionFactory = stopCondition().toFinishCondition();
+    return new ConditionallyCompleteSubscriberFactory(
+        (split) ->
+            new CompletablePullSubscriberImpl(
+                new BlockingPullSubscriberImpl(getSubscriberFactory(split), flowControlSettings()),
+                conditionFactory.New(split.subscriptionPath(), split.partition())),
+        conditionFactory);
   }
 
   Supplier<SplitReader<Record<OutputT>, SubscriptionPartitionSplit>> getSplitReaderSupplier() {
@@ -184,7 +195,7 @@ public abstract class PubsubLiteSourceSettings<OutputT> implements Serializable 
   }
 
   @AutoValue.Builder
-  abstract static class Builder<OutputT> {
+  public abstract static class Builder<OutputT> {
     // Required
     public abstract Builder<OutputT> setSubscriptionPath(SubscriptionPath path);
 
@@ -198,8 +209,7 @@ public abstract class PubsubLiteSourceSettings<OutputT> implements Serializable 
     public abstract Builder<OutputT> setTimestampSelector(MessageTimestampExtractor value);
 
     // Optional
-    public abstract Builder<OutputT> setPartitionFinishedCondition(
-        PartitionFinishedCondition.Factory value);
+    public abstract Builder<OutputT> setStopCondition(StopCondition value);
 
     abstract Builder<OutputT> setDeserializationSchema(
         PubsubLiteDeserializationSchema<OutputT> schema);
@@ -208,6 +218,21 @@ public abstract class PubsubLiteSourceSettings<OutputT> implements Serializable 
 
     abstract Builder<OutputT> setCursorClientSupplier(SerializableSupplier<CursorClient> value);
 
-    abstract PubsubLiteSourceSettings<OutputT> build();
+    abstract Builder<OutputT> setTopicStatsClientSupplier(
+        SerializableSupplier<TopicStatsClient> value);
+
+    public abstract PubsubLiteSourceSettings<OutputT> autoBuild();
+
+    public PubsubLiteSourceSettings<OutputT> build() {
+      PubsubLiteSourceSettings<OutputT> settings = autoBuild();
+      setStopCondition(
+          settings
+              .stopCondition()
+              .canonicalize(
+                  settings.subscriptionPath(),
+                  settings::getAdminClient,
+                  settings::getTopicStatsClient));
+      return autoBuild();
+    }
   }
 }

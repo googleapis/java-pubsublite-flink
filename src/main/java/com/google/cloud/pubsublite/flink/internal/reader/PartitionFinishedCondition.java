@@ -13,27 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.pubsublite.flink;
+package com.google.cloud.pubsublite.flink.internal.reader;
 
+import com.google.cloud.pubsublite.Offset;
 import com.google.cloud.pubsublite.Partition;
-import com.google.cloud.pubsublite.SequencedMessage;
 import com.google.cloud.pubsublite.SubscriptionPath;
-import java.io.Serializable;
 
-public interface PartitionFinishedCondition extends Serializable {
+public interface PartitionFinishedCondition {
+
   enum Result {
     CONTINUE,
     FINISH_BEFORE,
     FINISH_AFTER,
   }
 
-  Result partitionFinished(SequencedMessage message);
+  Result partitionFinished(Offset message);
 
-  interface Factory extends Serializable {
+  interface Factory {
     PartitionFinishedCondition New(SubscriptionPath path, Partition partition);
-  }
-
-  static PartitionFinishedCondition.Factory continueIndefinitely() {
-    return (Factory) (path, partition) -> (PartitionFinishedCondition) message -> Result.CONTINUE;
   }
 }
