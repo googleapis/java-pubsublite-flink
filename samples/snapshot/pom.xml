@@ -31,7 +31,11 @@
       <version>0.1.0-SNAPSHOT</version>
     </dependency>
   <!-- {x-version-update-end} -->
-
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-core</artifactId>
+      <version>1.13.2</version>
+    </dependency>
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
