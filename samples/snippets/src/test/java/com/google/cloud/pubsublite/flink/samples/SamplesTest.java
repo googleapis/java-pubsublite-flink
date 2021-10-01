@@ -50,7 +50,7 @@ import org.junit.Test;
 
 public class SamplesTest {
   // Callers must set GCLOUD_PROJECT
-  private static final ProjectId PROJECT = ProjectId.of("palmeretest");
+  private static final ProjectId PROJECT = ProjectId.of(System.getenv("GCLOUD_PROJECT"));
   private static final CloudZone ZONE = CloudZone.parse("us-central1-b");
   private static final List<String> INTEGER_STRINGS =
       IntStream.range(0, 100).mapToObj(Integer::toString).collect(Collectors.toList());
