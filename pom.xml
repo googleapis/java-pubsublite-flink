@@ -16,6 +16,20 @@
         <pubsublite.version>1.2.0</pubsublite.version>
     </properties>
     <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-dependency-plugin</artifactId>
+                    <configuration>
+                        <ignoredUnusedDeclaredDependencies>
+                            <ignoredUnusedDeclaredDependency>org.objenesis:objenesis</ignoredUnusedDeclaredDependency>
+                            <ignoredUnusedDeclaredDependency>javax.annotation:javax.annotation-api</ignoredUnusedDeclaredDependency>
+                        </ignoredUnusedDeclaredDependencies>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
         <extensions>
             <extension>
                 <groupId>kr.motd.maven</groupId>
