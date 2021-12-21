@@ -13,5 +13,6 @@
   "distribution_name": "com.google.cloud:google-cloud-pubsublite-flink",
   "codeowner_team": "@googleapis/api-pubsublite",
   "api_id": "pubsublite-flink.googleapis.com",
+  "library_type": "AGENT",
   "requires_billing": true
 }
