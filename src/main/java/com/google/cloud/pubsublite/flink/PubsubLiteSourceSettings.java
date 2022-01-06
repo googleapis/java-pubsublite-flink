@@ -19,8 +19,6 @@ import static com.google.cloud.pubsublite.internal.ExtractStatus.toCanonical;
 import static com.google.cloud.pubsublite.internal.wire.ServiceClients.addDefaultMetadata;
 import static com.google.cloud.pubsublite.internal.wire.ServiceClients.addDefaultSettings;
 
-import com.google.api.core.ApiFutureCallback;
-import com.google.api.core.ApiFutures;
 import com.google.api.gax.rpc.ApiException;
 import com.google.auto.value.AutoValue;
 import com.google.cloud.pubsublite.AdminClient;
@@ -50,9 +48,7 @@ import com.google.cloud.pubsublite.proto.Cursor;
 import com.google.cloud.pubsublite.proto.SeekRequest;
 import com.google.cloud.pubsublite.v1.SubscriberServiceClient;
 import com.google.cloud.pubsublite.v1.SubscriberServiceSettings;
-import com.google.common.util.concurrent.MoreExecutors;
 import java.io.Serializable;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 import javax.annotation.Nullable;
 import org.apache.flink.api.connector.source.Boundedness;
@@ -180,24 +176,6 @@ public abstract class PubsubLiteSourceSettings<OutputT> implements Serializable 
             new MessageSplitReader(getSplitStateFactory()),
             deserializationSchema(),
             timestampSelector());
-  }
-
-  Consumer<SubscriptionPartitionSplit> getCursorCommitter() {
-    CursorClient client = getCursorClient();
-    return (SubscriptionPartitionSplit split) -> {
-      ApiFutures.addCallback(
-          client.commitCursor(split.subscriptionPath(), split.partition(), split.start()),
-          new ApiFutureCallback<Void>() {
-            @Override
-            public void onFailure(Throwable throwable) {
-              LOG.error("Failed to commit cursor to Pub/Sub Lite ", throwable);
-            }
-
-            @Override
-            public void onSuccess(Void unused) {}
-          },
-          MoreExecutors.directExecutor());
-    };
   }
 
   @AutoValue.Builder

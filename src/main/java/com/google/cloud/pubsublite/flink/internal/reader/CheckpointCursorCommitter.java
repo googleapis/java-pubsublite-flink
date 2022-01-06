@@ -15,7 +15,11 @@
  */
 package com.google.cloud.pubsublite.flink.internal.reader;
 
+import com.google.api.core.ApiFutureCallback;
+import com.google.api.core.ApiFutures;
 import com.google.cloud.pubsublite.flink.internal.split.SubscriptionPartitionSplit;
+import com.google.cloud.pubsublite.internal.CursorClient;
+import com.google.cloud.pubsublite.internal.wire.SystemExecutors;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.concurrent.GuardedBy;
 import java.util.Collection;
@@ -25,9 +29,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.function.Consumer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class CheckpointCursorCommitter {
+public class CheckpointCursorCommitter implements AutoCloseable {
+  private static final Logger LOG = LoggerFactory.getLogger(CheckpointCursorCommitter.class);
+
   @GuardedBy("this")
   private final Set<SubscriptionPartitionSplit> finished = new HashSet<>();
 
@@ -35,9 +42,9 @@ public class CheckpointCursorCommitter {
   private final LinkedHashMap<Long, List<SubscriptionPartitionSplit>> checkpoints =
       new LinkedHashMap<>();
 
-  private final Consumer<SubscriptionPartitionSplit> cursorCommitter;
+  private final CursorClient cursorCommitter;
 
-  public CheckpointCursorCommitter(Consumer<SubscriptionPartitionSplit> cursorCommitter) {
+  public CheckpointCursorCommitter(CursorClient cursorCommitter) {
     this.cursorCommitter = cursorCommitter;
   }
 
@@ -51,13 +58,28 @@ public class CheckpointCursorCommitter {
             .build());
   }
 
+  private void commitCursor(SubscriptionPartitionSplit split) {
+    ApiFutures.addCallback(
+        cursorCommitter.commitCursor(split.subscriptionPath(), split.partition(), split.start()),
+        new ApiFutureCallback<Void>() {
+          @Override
+          public void onFailure(Throwable throwable) {
+            LOG.error("Failed to commit cursor to Pub/Sub Lite ", throwable);
+          }
+
+          @Override
+          public void onSuccess(Void unused) {}
+        },
+        SystemExecutors.getAlarmExecutor());
+  }
+
   public synchronized void notifyCheckpointComplete(long checkpointId) {
     if (!checkpoints.containsKey(checkpointId)) {
       return;
     }
     // Commit offsets corresponding to this checkpoint.
     List<SubscriptionPartitionSplit> splits = checkpoints.get(checkpointId);
-    splits.forEach(cursorCommitter);
+    splits.forEach(this::commitCursor);
     // Prune all checkpoints created before the one we just committed.
     Iterator<Entry<Long, List<SubscriptionPartitionSplit>>> iter =
         checkpoints.entrySet().iterator();
@@ -72,5 +94,10 @@ public class CheckpointCursorCommitter {
 
   public synchronized void notifySplitFinished(Collection<SubscriptionPartitionSplit> splits) {
     finished.addAll(splits);
+  }
+
+  @Override
+  public void close() throws Exception {
+    cursorCommitter.close();
   }
 }
