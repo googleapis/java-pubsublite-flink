@@ -67,7 +67,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-public class ITSourceAndSinkTest {
+public class SourceAndSinkTest {
   // Callers must set GCLOUD_PROJECT
   private static final ProjectId PROJECT = ProjectId.of(System.getenv("GCLOUD_PROJECT"));
   private static final CloudZone ZONE = CloudZone.parse("us-central1-b");
