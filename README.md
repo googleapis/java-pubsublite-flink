@@ -73,6 +73,18 @@ use this Pub/Sub Lite Flink Connector Client Library.
 
 
 
+## Samples
+
+Samples are in the [`samples/`](https://github.com/googleapis/java-pubsublite-flink/tree/master/samples) directory.
+
+| Sample                      | Source Code                       | Try it |
+| --------------------------- | --------------------------------- | ------ |
+| Publish Words | [source code](https://github.com/googleapis/java-pubsublite-flink/blob/master/samples/snippets/src/main/java/com/google/cloud/pubsublite/flink/samples/PublishWords.java) | [![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/java-pubsublite-flink&page=editor&open_in_editor=samples/snippets/src/main/java/com/google/cloud/pubsublite/flink/samples/PublishWords.java) |
+| Simple Read | [source code](https://github.com/googleapis/java-pubsublite-flink/blob/master/samples/snippets/src/main/java/com/google/cloud/pubsublite/flink/samples/SimpleRead.java) | [![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/java-pubsublite-flink&page=editor&open_in_editor=samples/snippets/src/main/java/com/google/cloud/pubsublite/flink/samples/SimpleRead.java) |
+| Simple Write | [source code](https://github.com/googleapis/java-pubsublite-flink/blob/master/samples/snippets/src/main/java/com/google/cloud/pubsublite/flink/samples/SimpleWrite.java) | [![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/java-pubsublite-flink&page=editor&open_in_editor=samples/snippets/src/main/java/com/google/cloud/pubsublite/flink/samples/SimpleWrite.java) |
+| Word Count | [source code](https://github.com/googleapis/java-pubsublite-flink/blob/master/samples/snippets/src/main/java/com/google/cloud/pubsublite/flink/samples/WordCount.java) | [![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/java-pubsublite-flink&page=editor&open_in_editor=samples/snippets/src/main/java/com/google/cloud/pubsublite/flink/samples/WordCount.java) |
+
+
 
 ## Troubleshooting
 
