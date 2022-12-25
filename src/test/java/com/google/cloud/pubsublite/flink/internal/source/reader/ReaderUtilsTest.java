@@ -36,6 +36,7 @@ public class ReaderUtilsTest {
             .build();
     RecordsBySplits<Integer> recordsWithSplitIds =
         new RecordsBySplits<>(map.asMap(), ImmutableSet.of("foo"));
-    assertThat(ReaderUtils.recordWithSplitsToMap(recordsWithSplitIds)).isEqualTo(map);
+    assertThat(ReaderUtils.recordWithSplitsToMap(recordsWithSplitIds))
+        .containsExactlyEntriesIn(map);
   }
 }

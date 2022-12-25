@@ -17,7 +17,9 @@ package com.google.cloud.pubsublite.flink.internal.sink;
 
 import static com.google.cloud.pubsublite.internal.ExtractStatus.toCanonical;
 import static com.google.cloud.pubsublite.internal.wire.ServiceClients.addDefaultSettings;
+import static com.google.cloud.pubsublite.internal.wire.ServiceClients.getCallContext;
 
+import com.google.api.gax.rpc.ApiCallContext;
 import com.google.api.gax.rpc.ApiException;
 import com.google.cloud.pubsublite.AdminClient;
 import com.google.cloud.pubsublite.AdminClientSettings;
@@ -29,7 +31,9 @@ import com.google.cloud.pubsublite.flink.PubsubLiteSinkSettings;
 import com.google.cloud.pubsublite.internal.Publisher;
 import com.google.cloud.pubsublite.internal.wire.PartitionCountWatchingPublisherSettings;
 import com.google.cloud.pubsublite.internal.wire.PartitionPublisherFactory;
+import com.google.cloud.pubsublite.internal.wire.PubsubContext;
 import com.google.cloud.pubsublite.internal.wire.PubsubContext.Framework;
+import com.google.cloud.pubsublite.internal.wire.RoutingMetadata;
 import com.google.cloud.pubsublite.internal.wire.SinglePartitionPublisherBuilder;
 import com.google.cloud.pubsublite.v1.PublisherServiceClient;
 import com.google.cloud.pubsublite.v1.PublisherServiceSettings;
@@ -67,6 +71,14 @@ public class SinkAssembler<InputT> {
                     .setTopic(settings.topicPath())
                     .setPartition(partition)
                     .setBatchingSettings(PublisherSettings.DEFAULT_BATCHING_SETTINGS)
+                    .setStreamFactory(
+                        responseObserver -> {
+                          ApiCallContext context =
+                              getCallContext(
+                                  PubsubContext.of(FRAMEWORK),
+                                  RoutingMetadata.of(settings.topicPath(), partition));
+                          return client.publishCallable().splitCall(responseObserver, context);
+                        })
                     .build();
               }
 

@@ -88,7 +88,7 @@ public class PubsubLiteSplitEnumeratorTest {
   // all tasks which have been scheduled by the executor service and throws any exceptions they
   // encountered.
   public void throwAnyTaskExceptions() throws Exception {
-    for (ScheduledFuture<?> task : testContext.getExecutorService().getScheduledTasks()) {
+    for (ScheduledFuture<?> task : testContext.getExecutorService().getAllScheduledTasks()) {
       if (task.isDone()) {
         task.get();
       }

@@ -142,7 +142,10 @@ public final class SourceAssembler<OutputT> {
   /** TODO(dpcollins): Remove this */
   public CursorClient getCursorClientRemoveThis() {
     return CursorClient.create(
-        CursorClientSettings.newBuilder().setServiceClient(getCursorClient()).build());
+        CursorClientSettings.newBuilder()
+            .setRegion(settings.subscriptionPath().location().extractRegion())
+            .setServiceClient(getCursorClient())
+            .build());
   }
 
   public AdminClient newAdminClient() {
