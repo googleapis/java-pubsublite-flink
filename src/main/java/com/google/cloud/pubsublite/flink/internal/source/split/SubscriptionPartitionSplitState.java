@@ -18,7 +18,7 @@ package com.google.cloud.pubsublite.flink.internal.source.split;
 import com.google.cloud.pubsublite.Offset;
 
 public final class SubscriptionPartitionSplitState {
-  SubscriptionPartitionSplit split;
+  final SubscriptionPartitionSplit split;
   Offset current;
 
   public SubscriptionPartitionSplitState(SubscriptionPartitionSplit split) {

@@ -22,6 +22,7 @@ import com.google.cloud.pubsublite.flink.internal.sink.PerServerPublisherCache;
 import com.google.cloud.pubsublite.flink.internal.sink.SerializingPublisher;
 import com.google.errorprone.annotations.concurrent.GuardedBy;
 import java.time.Instant;
+import org.apache.flink.api.common.serialization.RuntimeContextInitializationContextAdapters;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.state.FunctionInitializationContext;
 import org.apache.flink.runtime.state.FunctionSnapshotContext;
@@ -41,8 +42,7 @@ public class PubsubLiteSink<T> extends RichSinkFunction<T> implements Checkpoint
   }
 
   @Override
-  public void initializeState(FunctionInitializationContext functionInitializationContext)
-      throws Exception {}
+  public void initializeState(FunctionInitializationContext functionInitializationContext) {}
 
   @Override
   public synchronized void snapshotState(FunctionSnapshotContext functionSnapshotContext)
@@ -62,6 +62,11 @@ public class PubsubLiteSink<T> extends RichSinkFunction<T> implements Checkpoint
   @Override
   public synchronized void open(Configuration parameters) throws Exception {
     super.open(parameters);
+    settings
+        .serializationSchema()
+        .open(
+            RuntimeContextInitializationContextAdapters.serializationAdapter(
+                getRuntimeContext(), metricGroup -> metricGroup.addGroup("user")));
     publisher =
         new SerializingPublisher<>(
             new MessagePublisher(

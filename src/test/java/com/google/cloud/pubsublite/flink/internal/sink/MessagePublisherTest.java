@@ -77,9 +77,7 @@ public class MessagePublisherTest {
 
     assertThrows(
         CheckedApiException.class,
-        () -> {
-          messagePublisher.waitUntilNoOutstandingPublishes();
-        });
+        () -> messagePublisher.waitUntilNoOutstandingPublishes());
   }
 
   @Test

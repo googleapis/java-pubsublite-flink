@@ -95,7 +95,7 @@ public class CheckpointCursorCommitterTest {
   }
 
   @Test
-  public void testClose() throws Exception {
+  public void testClose() {
     cursorCommitter.close();
     verify(mockCursorClient).close();
   }

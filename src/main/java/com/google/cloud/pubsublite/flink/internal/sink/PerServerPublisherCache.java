@@ -15,9 +15,6 @@
  */
 package com.google.cloud.pubsublite.flink.internal.sink;
 
-import com.google.cloud.pubsublite.AdminClient;
-import com.google.cloud.pubsublite.AdminClientSettings;
-import com.google.cloud.pubsublite.CloudRegion;
 import com.google.cloud.pubsublite.MessageMetadata;
 import com.google.cloud.pubsublite.flink.PubsubLiteSinkSettings;
 import com.google.cloud.pubsublite.internal.Publisher;
@@ -26,10 +23,6 @@ import com.google.common.annotations.VisibleForTesting;
 public class PerServerPublisherCache {
   private static final PublisherCache<PubsubLiteSinkSettings<?>> cache =
       new PublisherCache<>(PerServerPublisherCache::newPublisher);
-
-  private static AdminClient getAdminClient(CloudRegion region) {
-    return AdminClient.create(AdminClientSettings.newBuilder().setRegion(region).build());
-  }
 
   private static Publisher<MessageMetadata> newPublisher(PubsubLiteSinkSettings<?> options) {
     SinkAssembler<?> assembler = new SinkAssembler<>(options);

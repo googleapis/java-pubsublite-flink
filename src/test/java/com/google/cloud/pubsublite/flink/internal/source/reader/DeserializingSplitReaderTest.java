@@ -138,7 +138,7 @@ public class DeserializingSplitReaderTest {
     SequencedMessage message1 = messageFromOffset(Offset.of(10));
 
     when(mockDeserializationSchema.deserialize(message1)).thenReturn("one");
-    when(mockTimestampExtractor.timestamp(message1)).thenThrow(new Exception(""));
+    when(mockTimestampExtractor.timestamp(message1)).thenThrow(new IllegalStateException(""));
 
     RecordsBySplits.Builder<SequencedMessage> records = new RecordsBySplits.Builder<>();
     records.add("1", message1);

@@ -124,13 +124,13 @@ public class ITSourceAndSinkTest {
         TopicPath.newBuilder()
             .setLocation(ZONE)
             .setProject(PROJECT)
-            .setName(TopicName.of("flink-integration-test-topic-" + uuid.toString()))
+            .setName(TopicName.of("flink-integration-test-topic-" + uuid))
             .build();
     subscriptionPath =
         SubscriptionPath.newBuilder()
             .setLocation(ZONE)
             .setProject(PROJECT)
-            .setName(SubscriptionName.of("flink-test-sub-" + uuid.toString()))
+            .setName(SubscriptionName.of("flink-test-sub-" + uuid))
             .build();
 
     Topic topic =
@@ -308,11 +308,12 @@ public class ITSourceAndSinkTest {
   // A testing sink which stores messages in a static map to prevent them from being lost when
   // the sink is serialized.
   private static class CollectSink implements SinkFunction<String>, Serializable {
+    private static final long serialVersionUID = 32840981723478L;
     // Note: doesn't store duplicates.
     private static final Set<String> collector = Collections.synchronizedSet(new HashSet<>());
 
     @Override
-    public void invoke(String value) throws Exception {
+    public void invoke(String value, Context context) {
       collector.add(value);
     }
 

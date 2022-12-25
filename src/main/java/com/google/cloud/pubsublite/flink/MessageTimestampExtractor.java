@@ -22,19 +22,17 @@ import java.time.Instant;
 
 public interface MessageTimestampExtractor extends Serializable {
   static MessageTimestampExtractor publishTimeExtractor() {
-    return (MessageTimestampExtractor)
-        m -> Timestamp.fromProto(m.publishTime()).toDate().toInstant();
+    return m -> Timestamp.fromProto(m.publishTime()).toDate().toInstant();
   }
 
   static MessageTimestampExtractor eventTimeExtractor() {
-    return (MessageTimestampExtractor)
-        m -> {
-          if (m.message().eventTime().isPresent()) {
-            return Timestamp.fromProto(m.message().eventTime().get()).toDate().toInstant();
-          }
-          return Timestamp.fromProto(m.publishTime()).toDate().toInstant();
-        };
+    return m -> {
+      if (m.message().eventTime().isPresent()) {
+        return Timestamp.fromProto(m.message().eventTime().get()).toDate().toInstant();
+      }
+      return Timestamp.fromProto(m.publishTime()).toDate().toInstant();
+    };
   }
 
-  Instant timestamp(SequencedMessage m) throws Exception;
+  Instant timestamp(SequencedMessage m);
 }

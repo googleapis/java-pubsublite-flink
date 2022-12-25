@@ -32,8 +32,7 @@ public final class SubscriptionPartitionSplitSerializer
   }
 
   @Override
-  public byte[] serialize(SubscriptionPartitionSplit subscriptionPartitionSplit)
-      throws IOException {
+  public byte[] serialize(SubscriptionPartitionSplit subscriptionPartitionSplit) {
     return subscriptionPartitionSplit.toProto().toByteArray();
   }
 

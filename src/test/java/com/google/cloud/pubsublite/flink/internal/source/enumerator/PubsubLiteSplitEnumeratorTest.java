@@ -46,10 +46,10 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PubsubLiteSplitEnumeratorTest {
-  TestingSplitEnumeratorContext<SubscriptionPartitionSplit> testContext =
+  private final TestingSplitEnumeratorContext<SubscriptionPartitionSplit> testContext =
       new TestingSplitEnumeratorContext<>(2);
   @Mock SplitDiscovery discovery;
-  PartitionAssigner assigner = UniformPartitionAssigner.create();
+  private final PartitionAssigner assigner = UniformPartitionAssigner.create();
 
   static SubscriptionPartitionSplit makeSplit(Partition partition) {
     return SubscriptionPartitionSplit.create(exampleSubscriptionPath(), partition, exampleOffset());
@@ -64,9 +64,7 @@ public class PubsubLiteSplitEnumeratorTest {
     ImmutableListMultimap.Builder<Integer, SubscriptionPartitionSplit> builder =
         ImmutableListMultimap.builder();
     state.forEach(
-        (k, v) -> {
-          builder.putAll(k, v.getAssignedSplits());
-        });
+        (k, v) -> builder.putAll(k, v.getAssignedSplits()));
     return builder.build();
   }
 

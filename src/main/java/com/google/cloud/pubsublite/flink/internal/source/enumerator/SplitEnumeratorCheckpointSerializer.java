@@ -27,7 +27,7 @@ public class SplitEnumeratorCheckpointSerializer
   }
 
   @Override
-  public byte[] serialize(SplitEnumeratorCheckpoint message) throws IOException {
+  public byte[] serialize(SplitEnumeratorCheckpoint message) {
     return message.toByteArray();
   }
 

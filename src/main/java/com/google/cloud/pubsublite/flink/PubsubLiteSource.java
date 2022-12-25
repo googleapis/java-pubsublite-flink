@@ -73,7 +73,7 @@ public class PubsubLiteSource<OutputT>
         });
     SourceAssembler<OutputT> assembler = new SourceAssembler<>(settings);
     return new PubsubLiteSourceReader<>(
-        new PubsubLiteRecordEmitter<OutputT>(),
+        new PubsubLiteRecordEmitter<>(),
         assembler.getCursorClientRemoveThis(),
         assembler.getSplitReaderSupplier(),
         new Configuration(),

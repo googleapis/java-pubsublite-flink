@@ -56,7 +56,7 @@ public class PubsubLiteSourceReaderTest {
   @Mock(answer = RETURNS_DEEP_STUBS)
   SourceReaderContext mockContext;
 
-  TestingReaderOutput<String> output = new TestingReaderOutput<>();
+  private final TestingReaderOutput<String> output = new TestingReaderOutput<>();
   SourceReader<String, SubscriptionPartitionSplit> reader;
 
   public static BlockingPullSubscriber subscriberFromIntegers(int... messages) {
