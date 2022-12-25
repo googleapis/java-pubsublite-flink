@@ -18,11 +18,11 @@ package com.google.cloud.pubsublite.flink;
 import com.google.auto.value.AutoValue;
 import com.google.cloud.pubsublite.Message;
 import com.google.cloud.pubsublite.TopicPath;
-import com.google.cloud.pubsublite.flink.internal.sink.PublisherOptions;
 import java.io.Serializable;
 
 @AutoValue
 public abstract class PubsubLiteSinkSettings<InputT> implements Serializable {
+  private static final long serialVersionUID = 24356890238740987L;
   public static final int DEFAULT_MAX_BYTES_OUTSTANDING = 100 * 1024 * 1024;
   // Create a builder which will accept messages of type InputT and serialize them using the
   // provided serialization schema.
@@ -45,10 +45,6 @@ public abstract class PubsubLiteSinkSettings<InputT> implements Serializable {
 
   // Internal.
   abstract PubsubLiteSerializationSchema<InputT> serializationSchema();
-
-  PublisherOptions getPublisherConfig() {
-    return PublisherOptions.create(topicPath());
-  }
 
   @AutoValue.Builder
   public abstract static class Builder<InputT> {

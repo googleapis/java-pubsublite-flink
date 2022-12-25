@@ -29,6 +29,8 @@ import org.apache.flink.streaming.api.checkpoint.CheckpointedFunction;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 
 public class PubsubLiteSink<T> extends RichSinkFunction<T> implements CheckpointedFunction {
+  private static final long serialVersionUID = 849752028745098L;
+
   private final PubsubLiteSinkSettings<T> settings;
 
   @GuardedBy("this")
@@ -63,8 +65,7 @@ public class PubsubLiteSink<T> extends RichSinkFunction<T> implements Checkpoint
     publisher =
         new SerializingPublisher<>(
             new MessagePublisher(
-                PerServerPublisherCache.getOrCreate(settings.getPublisherConfig()),
-                settings.maxBytesOutstanding()),
+                PerServerPublisherCache.getOrCreate(settings), settings.maxBytesOutstanding()),
             settings.serializationSchema());
   }
 

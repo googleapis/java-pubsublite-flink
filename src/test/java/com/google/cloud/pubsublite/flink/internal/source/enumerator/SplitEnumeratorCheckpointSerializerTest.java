@@ -13,30 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.pubsublite.flink.internal.sink;
+package com.google.cloud.pubsublite.flink.internal.source.enumerator;
 
-import static com.google.cloud.pubsublite.internal.testing.UnitTestExamples.exampleTopicPath;
 import static com.google.common.truth.Truth.assertThat;
 
-import com.google.cloud.pubsublite.Message;
-import com.google.cloud.pubsublite.MessageMetadata;
-import com.google.cloud.pubsublite.flink.PubsubLiteSinkSettings;
-import com.google.cloud.pubsublite.internal.Publisher;
+import com.google.cloud.pubsublite.flink.proto.SplitEnumeratorCheckpoint;
+import java.io.IOException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class PerServerPublisherCacheTest {
-
-  @Mock Publisher<MessageMetadata> publisher;
+public class SplitEnumeratorCheckpointSerializerTest {
 
   @Test
-  public void testCachedOptions() {
-    PubsubLiteSinkSettings<Message> options =
-        PubsubLiteSinkSettings.messagesBuilder().setTopicPath(exampleTopicPath()).build();
-    PerServerPublisherCache.getCache().set(options, publisher);
-    assertThat(PerServerPublisherCache.getOrCreate(options)).isEqualTo(publisher);
+  public void testSerialization() throws IOException {
+    SplitEnumeratorCheckpoint proto =
+        SplitEnumeratorCheckpoint.newBuilder()
+            .setDiscovery(SplitEnumeratorCheckpoint.Discovery.newBuilder().setSubscription("sub"))
+            .build();
+    SplitEnumeratorCheckpointSerializer serializer = new SplitEnumeratorCheckpointSerializer();
+    assertThat(serializer.deserialize(serializer.getVersion(), serializer.serialize(proto)))
+        .isEqualTo(proto);
   }
 }
