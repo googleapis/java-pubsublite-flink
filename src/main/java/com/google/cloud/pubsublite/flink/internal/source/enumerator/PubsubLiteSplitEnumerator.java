@@ -24,7 +24,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
-import org.apache.flink.api.connector.source.Boundedness;
 import org.apache.flink.api.connector.source.SplitEnumerator;
 import org.apache.flink.api.connector.source.SplitEnumeratorContext;
 import org.apache.flink.api.connector.source.SplitsAssignment;
@@ -39,35 +38,23 @@ public class PubsubLiteSplitEnumerator
   private final SplitEnumeratorContext<SubscriptionPartitionSplit> context;
   private final PartitionAssigner assigner;
   private final SplitDiscovery discovery;
-  private final Boundedness boundedness;
 
   public PubsubLiteSplitEnumerator(
       SplitEnumeratorContext<SubscriptionPartitionSplit> context,
       PartitionAssigner assigner,
-      SplitDiscovery discovery,
-      Boundedness boundedness) {
+      SplitDiscovery discovery) {
     this.context = context;
-    this.boundedness = boundedness;
     this.assigner = assigner;
     this.discovery = discovery;
   }
 
   @Override
   public void start() {
-    switch (boundedness) {
-      case CONTINUOUS_UNBOUNDED:
-        this.context.callAsync(
-            this::discoverNewSplits,
-            this::handlePartitionSplitDiscovery,
-            0,
-            PARTITION_DISCOVERY_INTERVAL.toMillis());
-        break;
-      case BOUNDED:
-        if (assigner.listSplits().isEmpty()) {
-          this.context.callAsync(this::discoverNewSplits, this::handlePartitionSplitDiscovery);
-        }
-        break;
-    }
+    this.context.callAsync(
+        this::discoverNewSplits,
+        this::handlePartitionSplitDiscovery,
+        0,
+        PARTITION_DISCOVERY_INTERVAL.toMillis());
   }
 
   @Override
@@ -88,7 +75,7 @@ public class PubsubLiteSplitEnumerator
   }
 
   @Override
-  public SplitEnumeratorCheckpoint snapshotState(long l) {
+  public SplitEnumeratorCheckpoint snapshotState() {
     SplitEnumeratorCheckpoint.Builder builder = SplitEnumeratorCheckpoint.newBuilder();
     builder.addAllAssignments(assigner.checkpoint());
     builder.setDiscovery(discovery.checkpoint());
@@ -134,13 +121,5 @@ public class PubsubLiteSplitEnumerator
         new SplitsAssignment<>(
             assignment.entrySet().stream()
                 .collect(Collectors.toMap(e -> e.getKey().value(), Entry::getValue))));
-
-    // If this is a bounded split enumerator, and we have discovered splits, inform any task which
-    // received an assignment that this assignment will be the last.
-    if (boundedness == Boundedness.BOUNDED && !assigner.listSplits().isEmpty()) {
-      for (TaskId task : assignment.keySet()) {
-        context.signalNoMoreSplits(task.value());
-      }
-    }
   }
 }

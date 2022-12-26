@@ -56,8 +56,7 @@ public class UniformPartitionAssignerTest {
   @Test
   public void testInvalidParallelism() {
     assertThrows(
-        IllegalArgumentException.class,
-        () -> assigner.assignSplitsForTasks(ImmutableList.of(), 0));
+        IllegalArgumentException.class, () -> assigner.assignSplitsForTasks(ImmutableList.of(), 0));
   }
 
   @Test

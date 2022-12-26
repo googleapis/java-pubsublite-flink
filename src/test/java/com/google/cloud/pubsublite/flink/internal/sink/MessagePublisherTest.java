@@ -76,8 +76,7 @@ public class MessagePublisherTest {
     verify(fakeInnerPublisher).publish(message1);
 
     assertThrows(
-        CheckedApiException.class,
-        () -> messagePublisher.waitUntilNoOutstandingPublishes());
+        CheckedApiException.class, () -> messagePublisher.waitUntilNoOutstandingPublishes());
   }
 
   @Test

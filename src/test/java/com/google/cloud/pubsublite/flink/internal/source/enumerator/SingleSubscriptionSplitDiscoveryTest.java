@@ -147,8 +147,9 @@ public class SingleSubscriptionSplitDiscoveryTest {
                 Offset.of(4)));
     assertThrows(
         IllegalStateException.class,
-        () -> SingleSubscriptionSplitDiscovery.fromCheckpoint(
-            proto, splits, mockAdminClient, mockCursorClient));
+        () ->
+            SingleSubscriptionSplitDiscovery.fromCheckpoint(
+                proto, splits, mockAdminClient, mockCursorClient));
   }
 
   @Test
@@ -161,8 +162,9 @@ public class SingleSubscriptionSplitDiscoveryTest {
                 exampleSubscriptionPath(), Partition.of(1), Offset.of(4)));
     assertThrows(
         IllegalStateException.class,
-        () -> SingleSubscriptionSplitDiscovery.fromCheckpoint(
-            proto, splits, mockAdminClient, mockCursorClient));
+        () ->
+            SingleSubscriptionSplitDiscovery.fromCheckpoint(
+                proto, splits, mockAdminClient, mockCursorClient));
   }
 
   @Test

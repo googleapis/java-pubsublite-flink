@@ -36,7 +36,6 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ScheduledFuture;
-import org.apache.flink.api.connector.source.Boundedness;
 import org.apache.flink.connector.testutils.source.reader.TestingSplitEnumeratorContext;
 import org.apache.flink.connector.testutils.source.reader.TestingSplitEnumeratorContext.SplitAssignmentState;
 import org.junit.Test;
@@ -55,16 +54,15 @@ public class PubsubLiteSplitEnumeratorTest {
     return SubscriptionPartitionSplit.create(exampleSubscriptionPath(), partition, exampleOffset());
   }
 
-  public PubsubLiteSplitEnumerator createEnumerator(Boundedness boundedness) {
-    return new PubsubLiteSplitEnumerator(testContext, assigner, discovery, boundedness);
+  public PubsubLiteSplitEnumerator createEnumerator() {
+    return new PubsubLiteSplitEnumerator(testContext, assigner, discovery);
   }
 
   static Multimap<Integer, SubscriptionPartitionSplit> toMap(
       Map<Integer, SplitAssignmentState<SubscriptionPartitionSplit>> state) {
     ImmutableListMultimap.Builder<Integer, SubscriptionPartitionSplit> builder =
         ImmutableListMultimap.builder();
-    state.forEach(
-        (k, v) -> builder.putAll(k, v.getAssignedSplits()));
+    state.forEach((k, v) -> builder.putAll(k, v.getAssignedSplits()));
     return builder.build();
   }
 
@@ -86,7 +84,7 @@ public class PubsubLiteSplitEnumeratorTest {
   // all tasks which have been scheduled by the executor service and throws any exceptions they
   // encountered.
   public void throwAnyTaskExceptions() throws Exception {
-    for (ScheduledFuture<?> task : testContext.getExecutorService().getAllScheduledTasks()) {
+    for (ScheduledFuture<?> task : testContext.getExecutorService().getScheduledTasks()) {
       if (task.isDone()) {
         task.get();
       }
@@ -95,21 +93,21 @@ public class PubsubLiteSplitEnumeratorTest {
 
   @Test
   public void testClose() throws Exception {
-    PubsubLiteSplitEnumerator enumerator = createEnumerator(Boundedness.CONTINUOUS_UNBOUNDED);
+    PubsubLiteSplitEnumerator enumerator = createEnumerator();
     enumerator.close();
     verify(discovery).close();
   }
 
   @Test
   public void testClose_Exception() throws Exception {
-    PubsubLiteSplitEnumerator enumerator = createEnumerator(Boundedness.CONTINUOUS_UNBOUNDED);
+    PubsubLiteSplitEnumerator enumerator = createEnumerator();
     doThrow(new Exception("error")).when(discovery).close();
     assertThrows(IOException.class, enumerator::close);
   }
 
   @Test
   public void testSplitDiscovery_EmptyPoll() {
-    PubsubLiteSplitEnumerator enumerator = createEnumerator(Boundedness.CONTINUOUS_UNBOUNDED);
+    PubsubLiteSplitEnumerator enumerator = createEnumerator();
     enumerator.start();
 
     when(discovery.discoverNewSplits()).thenReturn(ImmutableList.of());
@@ -120,7 +118,7 @@ public class PubsubLiteSplitEnumeratorTest {
 
   @Test
   public void testSplitDiscovery_InitialError() {
-    PubsubLiteSplitEnumerator enumerator = createEnumerator(Boundedness.CONTINUOUS_UNBOUNDED);
+    PubsubLiteSplitEnumerator enumerator = createEnumerator();
     enumerator.start();
 
     when(discovery.discoverNewSplits()).thenThrow(new RuntimeException("error"));
@@ -133,7 +131,7 @@ public class PubsubLiteSplitEnumeratorTest {
 
   @Test
   public void testSplitDiscovery_ErrorAfterInitialAssignment() throws Exception {
-    PubsubLiteSplitEnumerator enumerator = createEnumerator(Boundedness.CONTINUOUS_UNBOUNDED);
+    PubsubLiteSplitEnumerator enumerator = createEnumerator();
     enumerator.start();
 
     SubscriptionPartitionSplit s0 = makeSplit(Partition.of(0));
@@ -151,17 +149,17 @@ public class PubsubLiteSplitEnumeratorTest {
 
   @Test
   public void testCheckpoint() {
-    PubsubLiteSplitEnumerator enumerator = createEnumerator(Boundedness.CONTINUOUS_UNBOUNDED);
+    PubsubLiteSplitEnumerator enumerator = createEnumerator();
 
     when(discovery.checkpoint()).thenReturn(Discovery.newBuilder().build());
-    SplitEnumeratorCheckpoint checkpoint = enumerator.snapshotState(0L);
+    SplitEnumeratorCheckpoint checkpoint = enumerator.snapshotState();
     assertThat(checkpoint.getAssignmentsList()).containsExactlyElementsIn(assigner.checkpoint());
     assertThat(checkpoint.getDiscovery()).isEqualTo(discovery.checkpoint());
   }
 
   @Test
   public void testContinuousSplitDiscovery() {
-    PubsubLiteSplitEnumerator enumerator = createEnumerator(Boundedness.CONTINUOUS_UNBOUNDED);
+    PubsubLiteSplitEnumerator enumerator = createEnumerator();
     enumerator.start();
 
     SubscriptionPartitionSplit s0 = makeSplit(Partition.of(0));
@@ -184,7 +182,7 @@ public class PubsubLiteSplitEnumeratorTest {
 
   @Test
   public void testContinuousSplitDiscovery_DelayedReaderRegistration() {
-    PubsubLiteSplitEnumerator enumerator = createEnumerator(Boundedness.CONTINUOUS_UNBOUNDED);
+    PubsubLiteSplitEnumerator enumerator = createEnumerator();
     enumerator.start();
 
     SubscriptionPartitionSplit s0 = makeSplit(Partition.of(0));
@@ -206,7 +204,7 @@ public class PubsubLiteSplitEnumeratorTest {
 
   @Test
   public void testContinuousReaderRegistration() {
-    PubsubLiteSplitEnumerator enumerator = createEnumerator(Boundedness.CONTINUOUS_UNBOUNDED);
+    PubsubLiteSplitEnumerator enumerator = createEnumerator();
     enumerator.start();
 
     SubscriptionPartitionSplit s0 = makeSplit(Partition.of(0));
@@ -223,7 +221,7 @@ public class PubsubLiteSplitEnumeratorTest {
 
   @Test
   public void testContinuousAddSplitBack() {
-    PubsubLiteSplitEnumerator enumerator = createEnumerator(Boundedness.CONTINUOUS_UNBOUNDED);
+    PubsubLiteSplitEnumerator enumerator = createEnumerator();
 
     SubscriptionPartitionSplit s0 = makeSplit(Partition.of(0));
 
@@ -232,54 +230,5 @@ public class PubsubLiteSplitEnumeratorTest {
 
     assertThat(toMap(testContext.getSplitAssignments())).containsExactly(0, s0);
     assertThat(anyFinished(testContext.getSplitAssignments())).isFalse();
-  }
-
-  @Test
-  public void testBoundedSplitDiscovery() {
-    PubsubLiteSplitEnumerator enumerator = createEnumerator(Boundedness.BOUNDED);
-    enumerator.start();
-
-    SubscriptionPartitionSplit s0 = makeSplit(Partition.of(0));
-
-    testContext.registerReader(0, "h0");
-    when(discovery.discoverNewSplits()).thenReturn(ImmutableList.of(s0));
-    testContext.triggerAllActions();
-
-    reset(discovery);
-    testContext.triggerAllActions();
-    verifyNoInteractions(discovery);
-
-    assertThat(toMap(testContext.getSplitAssignments())).containsExactly(0, s0);
-    assertThat(allFinished(testContext.getSplitAssignments())).isTrue();
-  }
-
-  @Test
-  public void testBoundedReaderRegistration() {
-    PubsubLiteSplitEnumerator enumerator = createEnumerator(Boundedness.BOUNDED);
-    enumerator.start();
-
-    SubscriptionPartitionSplit s0 = makeSplit(Partition.of(0));
-
-    when(discovery.discoverNewSplits()).thenReturn(ImmutableList.of(s0));
-    testContext.triggerAllActions();
-    assertThat(testContext.getSplitAssignments()).isEmpty();
-
-    testContext.registerReader(0, "h0");
-    enumerator.addReader(0);
-    assertThat(toMap(testContext.getSplitAssignments())).containsExactly(0, s0);
-    assertThat(allFinished(testContext.getSplitAssignments())).isTrue();
-  }
-
-  @Test
-  public void testBoundedAddSplitBack() {
-    PubsubLiteSplitEnumerator enumerator = createEnumerator(Boundedness.BOUNDED);
-
-    SubscriptionPartitionSplit s0 = makeSplit(Partition.of(0));
-
-    testContext.registerReader(0, "h0");
-    enumerator.addSplitsBack(ImmutableList.of(s0), 1);
-
-    assertThat(toMap(testContext.getSplitAssignments())).containsExactly(0, s0);
-    assertThat(allFinished(testContext.getSplitAssignments())).isTrue();
   }
 }

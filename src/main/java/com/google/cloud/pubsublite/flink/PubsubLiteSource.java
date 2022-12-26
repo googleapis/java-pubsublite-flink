@@ -52,7 +52,7 @@ public class PubsubLiteSource<OutputT>
 
   @Override
   public Boundedness getBoundedness() {
-    return settings.boundedness();
+    return Boundedness.CONTINUOUS_UNBOUNDED;
   }
 
   @Override
@@ -68,7 +68,7 @@ public class PubsubLiteSource<OutputT>
 
           @Override
           public UserCodeClassLoader getUserCodeClassLoader() {
-            return readerContext.getUserCodeClassLoader();
+            return null;
           }
         });
     SourceAssembler<OutputT> assembler = new SourceAssembler<>(settings);
@@ -91,8 +91,7 @@ public class PubsubLiteSource<OutputT>
             assembler.newAdminClient(),
             assembler.getCursorClientRemoveThis(),
             assembler.getTopicPath(),
-            settings.subscriptionPath()),
-        settings.boundedness());
+            settings.subscriptionPath()));
   }
 
   @Override
@@ -108,7 +107,7 @@ public class PubsubLiteSource<OutputT>
             assigner.listSplits(),
             assembler.newAdminClient(),
             assembler.getCursorClientRemoveThis());
-    return new PubsubLiteSplitEnumerator(enumContext, assigner, discovery, settings.boundedness());
+    return new PubsubLiteSplitEnumerator(enumContext, assigner, discovery);
   }
 
   @Override

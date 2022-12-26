@@ -20,7 +20,6 @@ import com.google.cloud.pubsublite.SequencedMessage;
 import com.google.cloud.pubsublite.SubscriptionPath;
 import com.google.cloud.pubsublite.cloudpubsub.FlowControlSettings;
 import java.io.Serializable;
-import org.apache.flink.api.connector.source.Boundedness;
 
 @AutoValue
 public abstract class PubsubLiteSourceSettings<OutputT> implements Serializable {
@@ -30,7 +29,6 @@ public abstract class PubsubLiteSourceSettings<OutputT> implements Serializable 
       PubsubLiteDeserializationSchema<OutputT> schema) {
     return new AutoValue_PubsubLiteSourceSettings.Builder<OutputT>()
         .setDeserializationSchema(schema)
-        .setBoundedness(Boundedness.CONTINUOUS_UNBOUNDED)
         .setTimestampSelector(MessageTimestampExtractor.publishTimeExtractor());
   }
 
@@ -45,9 +43,6 @@ public abstract class PubsubLiteSourceSettings<OutputT> implements Serializable 
   public abstract FlowControlSettings flowControlSettings();
 
   // Optional
-  public abstract Boundedness boundedness();
-
-  // Optional
   public abstract MessageTimestampExtractor timestampSelector();
 
   // Internal
@@ -60,9 +55,6 @@ public abstract class PubsubLiteSourceSettings<OutputT> implements Serializable 
 
     // Required
     public abstract Builder<OutputT> setFlowControlSettings(FlowControlSettings settings);
-
-    // Optional
-    public abstract Builder<OutputT> setBoundedness(Boundedness value);
 
     // Optional
     public abstract Builder<OutputT> setTimestampSelector(MessageTimestampExtractor value);
