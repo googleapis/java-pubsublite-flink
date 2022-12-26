@@ -20,9 +20,7 @@ import static com.google.cloud.pubsublite.internal.testing.UnitTestExamples.exam
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.cloud.pubsublite.Partition;
