@@ -12,7 +12,7 @@
     <artifactId>google-cloud-pubsublite-flink</artifactId>
     <version>0.1.0-SNAPSHOT</version>
     <properties>
-        <flink.version>1.12.5</flink.version>
+        <flink.version>1.15.0</flink.version>
         <pubsublite.version>${project.parent.version}</pubsublite.version>
     </properties>
     <build>
@@ -107,12 +107,12 @@
         </dependency>
         <dependency>
             <groupId>org.apache.flink</groupId>
-            <artifactId>flink-streaming-java_2.12</artifactId>
+            <artifactId>flink-streaming-java</artifactId>
             <version>${flink.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.flink</groupId>
-            <artifactId>flink-runtime_2.12</artifactId>
+            <artifactId>flink-runtime</artifactId>
             <version>${flink.version}</version>
         </dependency>
         <dependency>
@@ -144,13 +144,13 @@
         </dependency>
         <dependency>
             <groupId>org.apache.flink</groupId>
-            <artifactId>flink-test-utils_2.12</artifactId>
+            <artifactId>flink-test-utils</artifactId>
             <version>${flink.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.flink</groupId>
-            <artifactId>flink-runtime_2.12</artifactId>
+            <artifactId>flink-runtime</artifactId>
             <version>${flink.version}</version>
             <type>test-jar</type>
             <scope>test</scope>

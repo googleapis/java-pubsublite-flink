@@ -75,7 +75,7 @@ public class PubsubLiteSplitEnumerator
   }
 
   @Override
-  public SplitEnumeratorCheckpoint snapshotState() {
+  public SplitEnumeratorCheckpoint snapshotState(long checkpointId) {
     SplitEnumeratorCheckpoint.Builder builder = SplitEnumeratorCheckpoint.newBuilder();
     builder.addAllAssignments(assigner.checkpoint());
     builder.setDiscovery(discovery.checkpoint());
