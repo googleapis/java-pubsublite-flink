@@ -22,6 +22,7 @@ import com.google.cloud.pubsublite.flink.internal.sink.PerServerPublisherCache;
 import com.google.cloud.pubsublite.flink.internal.sink.SerializingPublisher;
 import com.google.errorprone.annotations.concurrent.GuardedBy;
 import java.time.Instant;
+import org.apache.flink.api.common.serialization.RuntimeContextInitializationContextAdapters;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.state.FunctionInitializationContext;
 import org.apache.flink.runtime.state.FunctionSnapshotContext;
@@ -29,6 +30,8 @@ import org.apache.flink.streaming.api.checkpoint.CheckpointedFunction;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 
 public class PubsubLiteSink<T> extends RichSinkFunction<T> implements CheckpointedFunction {
+  private static final long serialVersionUID = 849752028745098L;
+
   private final PubsubLiteSinkSettings<T> settings;
 
   @GuardedBy("this")
@@ -39,8 +42,7 @@ public class PubsubLiteSink<T> extends RichSinkFunction<T> implements Checkpoint
   }
 
   @Override
-  public void initializeState(FunctionInitializationContext functionInitializationContext)
-      throws Exception {}
+  public void initializeState(FunctionInitializationContext functionInitializationContext) {}
 
   @Override
   public synchronized void snapshotState(FunctionSnapshotContext functionSnapshotContext)
@@ -60,11 +62,15 @@ public class PubsubLiteSink<T> extends RichSinkFunction<T> implements Checkpoint
   @Override
   public synchronized void open(Configuration parameters) throws Exception {
     super.open(parameters);
+    settings
+        .serializationSchema()
+        .open(
+            RuntimeContextInitializationContextAdapters.serializationAdapter(
+                getRuntimeContext(), metricGroup -> metricGroup.addGroup("user")));
     publisher =
         new SerializingPublisher<>(
             new MessagePublisher(
-                PerServerPublisherCache.getOrCreate(settings.getPublisherConfig()),
-                settings.maxBytesOutstanding()),
+                PerServerPublisherCache.getOrCreate(settings), settings.maxBytesOutstanding()),
             settings.serializationSchema());
   }
 

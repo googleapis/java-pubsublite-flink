@@ -31,6 +31,7 @@ import com.google.cloud.pubsublite.TopicName;
 import com.google.cloud.pubsublite.TopicPath;
 import com.google.cloud.pubsublite.cloudpubsub.FlowControlSettings;
 import com.google.cloud.pubsublite.flink.internal.sink.PerServerPublisherCache;
+import com.google.cloud.pubsublite.flink.internal.source.SourceAssembler;
 import com.google.cloud.pubsublite.internal.Publisher;
 import com.google.cloud.pubsublite.proto.Subscription;
 import com.google.cloud.pubsublite.proto.Subscription.DeliveryConfig;
@@ -55,7 +56,6 @@ import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.restartstrategy.RestartStrategies;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.common.time.Time;
-import org.apache.flink.api.connector.source.Boundedness;
 import org.apache.flink.core.execution.JobClient;
 import org.apache.flink.runtime.testutils.MiniClusterResourceConfiguration;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
@@ -86,7 +86,7 @@ public class ITSourceAndSinkTest {
               .setNumberTaskManagers(1)
               .build());
 
-  private PubsubLiteSourceSettings.Builder<String> sourceSettings() {
+  private PubsubLiteSourceSettings<String> sourceSettings() {
     return PubsubLiteSourceSettings.builder(
             PubsubLiteDeserializationSchema.dataOnly(new SimpleStringSchema()))
         .setSubscriptionPath(subscriptionPath)
@@ -94,21 +94,23 @@ public class ITSourceAndSinkTest {
             FlowControlSettings.builder()
                 .setBytesOutstanding(100000)
                 .setMessagesOutstanding(100)
-                .build());
+                .build())
+        .build();
   }
 
-  private PubsubLiteSinkSettings.Builder<String> sinkSettings() {
+  private PubsubLiteSinkSettings<String> sinkSettings() {
     return PubsubLiteSinkSettings.builder(
             PubsubLiteSerializationSchema.dataOnly(new SimpleStringSchema()))
-        .setTopicPath(topicPath);
+        .setTopicPath(topicPath)
+        .build();
   }
 
   private Publisher<MessageMetadata> getPublisher() {
-    return PerServerPublisherCache.getOrCreate(sinkSettings().build().getPublisherConfig());
+    return PerServerPublisherCache.getOrCreate(sinkSettings());
   }
 
   private AdminClient getAdminClient() {
-    return sourceSettings().build().getAdminClient();
+    return new SourceAssembler<>(sourceSettings()).newAdminClient();
   }
 
   private static Message messageFromString(String i) {
@@ -122,13 +124,13 @@ public class ITSourceAndSinkTest {
         TopicPath.newBuilder()
             .setLocation(ZONE)
             .setProject(PROJECT)
-            .setName(TopicName.of("flink-integration-test-topic-" + uuid.toString()))
+            .setName(TopicName.of("flink-integration-test-topic-" + uuid))
             .build();
     subscriptionPath =
         SubscriptionPath.newBuilder()
             .setLocation(ZONE)
             .setProject(PROJECT)
-            .setName(SubscriptionName.of("flink-test-sub-" + uuid.toString()))
+            .setName(SubscriptionName.of("flink-test-sub-" + uuid))
             .build();
 
     Topic topic =
@@ -180,9 +182,7 @@ public class ITSourceAndSinkTest {
 
     StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
     env.fromSource(
-            new PubsubLiteSource<>(sourceSettings().build()),
-            WatermarkStrategy.noWatermarks(),
-            "testPSL")
+            new PubsubLiteSource<>(sourceSettings()), WatermarkStrategy.noWatermarks(), "testPSL")
         .addSink(new CollectSink());
     JobClient client = env.executeAsync();
 
@@ -203,30 +203,6 @@ public class ITSourceAndSinkTest {
   }
 
   @Test
-  public void testBoundedSource() throws Exception {
-    Publisher<MessageMetadata> publisher = getPublisher();
-
-    ApiFutures.allAsList(
-            INTEGER_STRINGS.stream()
-                .map(v -> publisher.publish(messageFromString(v)))
-                .collect(Collectors.toList()))
-        .get();
-
-    StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-    env.fromSource(
-            new PubsubLiteSource<>(
-                sourceSettings()
-                    .setBoundedness(Boundedness.BOUNDED)
-                    .setStopCondition(StopCondition.readToHead())
-                    .build()),
-            WatermarkStrategy.noWatermarks(),
-            "testPSL")
-        .addSink(new CollectSink());
-    env.execute();
-    assertThat(CollectSink.values()).containsExactlyElementsIn(INTEGER_STRINGS);
-  }
-
-  @Test
   public void testSourceWithFailure() throws Exception {
 
     Publisher<MessageMetadata> publisher = getPublisher();
@@ -235,9 +211,7 @@ public class ITSourceAndSinkTest {
     env.setRestartStrategy(
         RestartStrategies.fixedDelayRestart(3, Time.of(10, TimeUnit.MILLISECONDS)));
     env.fromSource(
-            new PubsubLiteSource<>(sourceSettings().build()),
-            WatermarkStrategy.noWatermarks(),
-            "testPSL")
+            new PubsubLiteSource<>(sourceSettings()), WatermarkStrategy.noWatermarks(), "testPSL")
         .filter(
             v -> {
               if (v.equals(INTEGER_STRINGS.get(37)) && staticSet.add("mapFailOnce")) {
@@ -268,13 +242,11 @@ public class ITSourceAndSinkTest {
   public void testSink() throws Exception {
     StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
     env.fromCollection(INTEGER_STRINGS)
-        .addSink(new PubsubLiteSink<>(sinkSettings().build()))
+        .addSink(new PubsubLiteSink<>(sinkSettings()))
         .name("PSL Sink");
 
     env.fromSource(
-            new PubsubLiteSource<>(sourceSettings().build()),
-            WatermarkStrategy.noWatermarks(),
-            "testPSL")
+            new PubsubLiteSource<>(sourceSettings()), WatermarkStrategy.noWatermarks(), "testPSL")
         .addSink(new CollectSink());
 
     JobClient client = env.executeAsync();
@@ -292,8 +264,7 @@ public class ITSourceAndSinkTest {
   @Test
   public void testSinkWithFailure() throws Exception {
     // Set up a publisher which will fail once when attempting to publish the 37th message
-    Publisher<MessageMetadata> publisher =
-        spy(PerServerPublisherCache.getOrCreate(sinkSettings().build().getPublisherConfig()));
+    Publisher<MessageMetadata> publisher = spy(PerServerPublisherCache.getOrCreate(sinkSettings()));
     Mockito.doAnswer(
             inv -> {
               Message m = inv.getArgument(0);
@@ -305,20 +276,18 @@ public class ITSourceAndSinkTest {
             })
         .when(publisher)
         .publish(any());
-    PerServerPublisherCache.getCache().set(sinkSettings().build().getPublisherConfig(), publisher);
+    PerServerPublisherCache.getCache().set(sinkSettings(), publisher);
 
     StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
     env.setRestartStrategy(
         RestartStrategies.fixedDelayRestart(3, Time.of(10, TimeUnit.MILLISECONDS)));
 
     env.fromCollection(INTEGER_STRINGS)
-        .addSink(new PubsubLiteSink<>(sinkSettings().build()))
+        .addSink(new PubsubLiteSink<>(sinkSettings()))
         .name("PSL Sink");
 
     env.fromSource(
-            new PubsubLiteSource<>(sourceSettings().build()),
-            WatermarkStrategy.noWatermarks(),
-            "testPSL")
+            new PubsubLiteSource<>(sourceSettings()), WatermarkStrategy.noWatermarks(), "testPSL")
         .addSink(new CollectSink());
 
     JobClient client = env.executeAsync();
@@ -339,11 +308,12 @@ public class ITSourceAndSinkTest {
   // A testing sink which stores messages in a static map to prevent them from being lost when
   // the sink is serialized.
   private static class CollectSink implements SinkFunction<String>, Serializable {
+    private static final long serialVersionUID = 32840981723478L;
     // Note: doesn't store duplicates.
     private static final Set<String> collector = Collections.synchronizedSet(new HashSet<>());
 
     @Override
-    public void invoke(String value) throws Exception {
+    public void invoke(String value, Context context) {
       collector.add(value);
     }
 

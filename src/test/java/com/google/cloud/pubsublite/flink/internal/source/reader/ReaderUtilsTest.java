@@ -13,30 +13,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.pubsublite.flink.internal.sink;
+package com.google.cloud.pubsublite.flink.internal.source.reader;
 
-import static com.google.cloud.pubsublite.internal.testing.UnitTestExamples.exampleTopicPath;
 import static com.google.common.truth.Truth.assertThat;
 
-import com.google.cloud.pubsublite.Message;
-import com.google.cloud.pubsublite.MessageMetadata;
-import com.google.cloud.pubsublite.flink.PubsubLiteSinkSettings;
-import com.google.cloud.pubsublite.internal.Publisher;
+import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableSet;
+import org.apache.flink.connector.base.source.reader.RecordsBySplits;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class PerServerPublisherCacheTest {
-
-  @Mock Publisher<MessageMetadata> publisher;
+public class ReaderUtilsTest {
 
   @Test
-  public void testCachedOptions() {
-    PubsubLiteSinkSettings<Message> options =
-        PubsubLiteSinkSettings.messagesBuilder().setTopicPath(exampleTopicPath()).build();
-    PerServerPublisherCache.getCache().set(options, publisher);
-    assertThat(PerServerPublisherCache.getOrCreate(options)).isEqualTo(publisher);
+  public void testConversion() {
+    ImmutableListMultimap<String, Integer> map =
+        ImmutableListMultimap.<String, Integer>builder()
+            .putAll("evens", 2, 4, 6)
+            .putAll("odds", 1, 3, 5)
+            .build();
+    RecordsBySplits<Integer> recordsWithSplitIds =
+        new RecordsBySplits<>(map.asMap(), ImmutableSet.of("foo"));
+    assertThat(ReaderUtils.recordWithSplitsToMap(recordsWithSplitIds))
+        .containsExactlyEntriesIn(map);
   }
 }

@@ -15,23 +15,26 @@
  */
 package com.google.cloud.pubsublite.flink;
 
-import com.google.cloud.pubsublite.AdminClient;
-import com.google.cloud.pubsublite.TopicPath;
-import com.google.cloud.pubsublite.flink.internal.enumerator.PartitionAssigner;
-import com.google.cloud.pubsublite.flink.internal.enumerator.PubsubLiteSplitEnumerator;
-import com.google.cloud.pubsublite.flink.internal.enumerator.SingleSubscriptionSplitDiscovery;
-import com.google.cloud.pubsublite.flink.internal.enumerator.SplitDiscovery;
-import com.google.cloud.pubsublite.flink.internal.enumerator.SplitEnumeratorCheckpointSerializer;
-import com.google.cloud.pubsublite.flink.internal.enumerator.UniformPartitionAssigner;
-import com.google.cloud.pubsublite.flink.internal.reader.PubsubLiteRecordEmitter;
-import com.google.cloud.pubsublite.flink.internal.reader.PubsubLiteSourceReader;
-import com.google.cloud.pubsublite.flink.internal.split.SubscriptionPartitionSplit;
-import com.google.cloud.pubsublite.flink.internal.split.SubscriptionPartitionSplitSerializer;
+import com.google.cloud.pubsublite.flink.internal.source.SourceAssembler;
+import com.google.cloud.pubsublite.flink.internal.source.enumerator.PartitionAssigner;
+import com.google.cloud.pubsublite.flink.internal.source.enumerator.PubsubLiteSplitEnumerator;
+import com.google.cloud.pubsublite.flink.internal.source.enumerator.SingleSubscriptionSplitDiscovery;
+import com.google.cloud.pubsublite.flink.internal.source.enumerator.SplitDiscovery;
+import com.google.cloud.pubsublite.flink.internal.source.enumerator.SplitEnumeratorCheckpointSerializer;
+import com.google.cloud.pubsublite.flink.internal.source.enumerator.UniformPartitionAssigner;
+import com.google.cloud.pubsublite.flink.internal.source.reader.PubsubLiteRecordEmitter;
+import com.google.cloud.pubsublite.flink.internal.source.reader.PubsubLiteSourceReader;
+import com.google.cloud.pubsublite.flink.internal.source.split.SubscriptionPartitionSplit;
+import com.google.cloud.pubsublite.flink.internal.source.split.SubscriptionPartitionSplitSerializer;
 import com.google.cloud.pubsublite.flink.proto.SplitEnumeratorCheckpoint;
-import com.google.cloud.pubsublite.internal.ExtractStatus;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.api.connector.source.*;
+import org.apache.flink.api.connector.source.Boundedness;
+import org.apache.flink.api.connector.source.Source;
+import org.apache.flink.api.connector.source.SourceReader;
+import org.apache.flink.api.connector.source.SourceReaderContext;
+import org.apache.flink.api.connector.source.SplitEnumerator;
+import org.apache.flink.api.connector.source.SplitEnumeratorContext;
 import org.apache.flink.api.java.typeutils.ResultTypeQueryable;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.io.SimpleVersionedSerializer;
@@ -49,7 +52,7 @@ public class PubsubLiteSource<OutputT>
 
   @Override
   public Boundedness getBoundedness() {
-    return settings.boundedness();
+    return Boundedness.CONTINUOUS_UNBOUNDED;
   }
 
   @Override
@@ -65,13 +68,14 @@ public class PubsubLiteSource<OutputT>
 
           @Override
           public UserCodeClassLoader getUserCodeClassLoader() {
-            return readerContext.getUserCodeClassLoader();
+            return null;
           }
         });
+    SourceAssembler<OutputT> assembler = new SourceAssembler<>(settings);
     return new PubsubLiteSourceReader<>(
         new PubsubLiteRecordEmitter<>(),
-        settings.getCursorClient(),
-        settings.getSplitReaderSupplier(),
+        assembler.getCursorClientRemoveThis(),
+        assembler.getSplitReaderSupplier(),
         new Configuration(),
         readerContext);
   }
@@ -79,23 +83,15 @@ public class PubsubLiteSource<OutputT>
   @Override
   public SplitEnumerator<SubscriptionPartitionSplit, SplitEnumeratorCheckpoint> createEnumerator(
       SplitEnumeratorContext<SubscriptionPartitionSplit> enumContext) {
-    TopicPath topic;
-    try (AdminClient adminClient = settings.getAdminClient()) {
-      topic =
-          TopicPath.parse(
-              adminClient.getSubscription(settings.subscriptionPath()).get().getTopic());
-    } catch (Throwable t) {
-      throw ExtractStatus.toCanonical(t).underlying;
-    }
+    SourceAssembler<OutputT> assembler = new SourceAssembler<>(settings);
     return new PubsubLiteSplitEnumerator(
         enumContext,
         UniformPartitionAssigner.create(),
         SingleSubscriptionSplitDiscovery.create(
-            settings.getAdminClient(),
-            settings.getCursorClient(),
-            topic,
-            settings.subscriptionPath()),
-        settings.boundedness());
+            assembler.newAdminClient(),
+            assembler.getCursorClientRemoveThis(),
+            assembler.getTopicPath(),
+            settings.subscriptionPath()));
   }
 
   @Override
@@ -104,13 +100,14 @@ public class PubsubLiteSource<OutputT>
       SplitEnumeratorCheckpoint checkpoint) {
     PartitionAssigner assigner =
         UniformPartitionAssigner.fromCheckpoint(checkpoint.getAssignmentsList());
+    SourceAssembler<OutputT> assembler = new SourceAssembler<>(settings);
     SplitDiscovery discovery =
         SingleSubscriptionSplitDiscovery.fromCheckpoint(
             checkpoint.getDiscovery(),
             assigner.listSplits(),
-            settings.getAdminClient(),
-            settings.getCursorClient());
-    return new PubsubLiteSplitEnumerator(enumContext, assigner, discovery, settings.boundedness());
+            assembler.newAdminClient(),
+            assembler.getCursorClientRemoveThis());
+    return new PubsubLiteSplitEnumerator(enumContext, assigner, discovery);
   }
 
   @Override
