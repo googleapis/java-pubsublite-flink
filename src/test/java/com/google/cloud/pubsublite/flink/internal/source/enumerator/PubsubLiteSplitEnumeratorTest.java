@@ -82,7 +82,7 @@ public class PubsubLiteSplitEnumeratorTest {
   // all tasks which have been scheduled by the executor service and throws any exceptions they
   // encountered.
   public void throwAnyTaskExceptions() throws Exception {
-    for (ScheduledFuture<?> task : testContext.getExecutorService().getScheduledTasks()) {
+    for (ScheduledFuture<?> task : testContext.getExecutorService().getAllScheduledTasks()) {
       if (task.isDone()) {
         task.get();
       }
@@ -150,7 +150,7 @@ public class PubsubLiteSplitEnumeratorTest {
     PubsubLiteSplitEnumerator enumerator = createEnumerator();
 
     when(discovery.checkpoint()).thenReturn(Discovery.newBuilder().build());
-    SplitEnumeratorCheckpoint checkpoint = enumerator.snapshotState();
+    SplitEnumeratorCheckpoint checkpoint = enumerator.snapshotState(123L);
     assertThat(checkpoint.getAssignmentsList()).containsExactlyElementsIn(assigner.checkpoint());
     assertThat(checkpoint.getDiscovery()).isEqualTo(discovery.checkpoint());
   }
