@@ -23,13 +23,14 @@ import com.google.api.core.ApiService.Listener;
 import com.google.api.core.ApiService.State;
 import com.google.cloud.pubsublite.Partition;
 import com.google.cloud.pubsublite.internal.wire.Committer;
-import com.google.common.flogger.GoogleLogger;
 import com.google.errorprone.annotations.concurrent.GuardedBy;
 import java.util.HashMap;
 import java.util.function.Function;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CommitterCache implements CommitterFactory {
-  private final GoogleLogger logger = GoogleLogger.forEnclosingClass();
+  private static final Logger LOG = LoggerFactory.getLogger(CommitterCache.class);
   private final Function<Partition, Committer> underlying;
 
   @GuardedBy("this")
@@ -49,7 +50,7 @@ public class CommitterCache implements CommitterFactory {
               new Listener() {
                 @Override
                 public void failed(State from, Throwable failure) {
-                  logger.atInfo().withCause(failure).log("Committer failed.");
+                  LOG.info("Committer failed.", failure);
                   remove(p);
                 }
 
