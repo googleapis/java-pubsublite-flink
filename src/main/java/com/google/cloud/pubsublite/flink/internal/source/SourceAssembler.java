@@ -24,6 +24,7 @@ import com.google.api.gax.rpc.ApiCallContext;
 import com.google.api.gax.rpc.ApiException;
 import com.google.cloud.pubsublite.AdminClient;
 import com.google.cloud.pubsublite.AdminClientSettings;
+import com.google.cloud.pubsublite.Partition;
 import com.google.cloud.pubsublite.SubscriptionPath;
 import com.google.cloud.pubsublite.TopicPath;
 import com.google.cloud.pubsublite.flink.PubsubLiteSourceSettings;
@@ -35,6 +36,8 @@ import com.google.cloud.pubsublite.flink.internal.source.split.SubscriptionParti
 import com.google.cloud.pubsublite.internal.BlockingPullSubscriberImpl;
 import com.google.cloud.pubsublite.internal.CursorClient;
 import com.google.cloud.pubsublite.internal.CursorClientSettings;
+import com.google.cloud.pubsublite.internal.wire.Committer;
+import com.google.cloud.pubsublite.internal.wire.CommitterSettings;
 import com.google.cloud.pubsublite.internal.wire.PubsubContext;
 import com.google.cloud.pubsublite.internal.wire.PubsubContext.Framework;
 import com.google.cloud.pubsublite.internal.wire.RoutingMetadata;
@@ -135,16 +138,26 @@ public final class SourceAssembler<OutputT> {
     }
   }
 
-  private CursorServiceClient getCursorClient() {
+  private CursorServiceClient getCursorServiceClient() {
     return CURSOR_CLIENTS.computeIfAbsent(settings.subscriptionPath(), path -> newCursorClient());
   }
 
-  /** TODO(dpcollins): Remove this */
-  public CursorClient getCursorClientRemoveThis() {
+  public Committer getCommitter(Partition partition) {
+    CursorServiceClient client = getCursorServiceClient();
+    return CommitterSettings.newBuilder()
+        .setSubscriptionPath(settings.subscriptionPath())
+        .setPartition(partition)
+        .setStreamFactory(
+            responseObserver -> client.streamingCommitCursorCallable().splitCall(responseObserver))
+        .build()
+        .instantiate();
+  }
+
+  public CursorClient getCursorClient() {
     return CursorClient.create(
         CursorClientSettings.newBuilder()
             .setRegion(settings.subscriptionPath().location().extractRegion())
-            .setServiceClient(getCursorClient())
+            .setServiceClient(getCursorServiceClient())
             .build());
   }
 

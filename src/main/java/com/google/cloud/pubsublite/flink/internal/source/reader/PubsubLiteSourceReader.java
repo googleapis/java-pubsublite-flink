@@ -17,7 +17,6 @@ package com.google.cloud.pubsublite.flink.internal.source.reader;
 
 import com.google.cloud.pubsublite.flink.internal.source.split.SubscriptionPartitionSplit;
 import com.google.cloud.pubsublite.flink.internal.source.split.SubscriptionPartitionSplitState;
-import com.google.cloud.pubsublite.internal.CursorClient;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -34,10 +33,10 @@ public class PubsubLiteSourceReader<T>
 
   public PubsubLiteSourceReader(
       RecordEmitter<Record<T>, T, SubscriptionPartitionSplitState> recordEmitter,
-      CursorClient cursorCommitter,
       Supplier<SplitReader<Record<T>, SubscriptionPartitionSplit>> splitReaderSupplier,
       Configuration config,
-      SourceReaderContext context) {
+      SourceReaderContext context,
+      CommitterFactory cursorCommitter) {
     super(splitReaderSupplier, recordEmitter, config, context);
     this.checkpointCursorCommitter = new CheckpointCursorCommitter(cursorCommitter);
   }

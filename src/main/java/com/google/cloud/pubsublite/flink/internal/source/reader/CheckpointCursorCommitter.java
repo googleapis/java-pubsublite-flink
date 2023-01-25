@@ -18,7 +18,6 @@ package com.google.cloud.pubsublite.flink.internal.source.reader;
 import com.google.api.core.ApiFutureCallback;
 import com.google.api.core.ApiFutures;
 import com.google.cloud.pubsublite.flink.internal.source.split.SubscriptionPartitionSplit;
-import com.google.cloud.pubsublite.internal.CursorClient;
 import com.google.cloud.pubsublite.internal.wire.SystemExecutors;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.concurrent.GuardedBy;
@@ -42,10 +41,10 @@ public class CheckpointCursorCommitter implements AutoCloseable {
   private final LinkedHashMap<Long, List<SubscriptionPartitionSplit>> checkpoints =
       new LinkedHashMap<>();
 
-  private final CursorClient cursorCommitter;
+  private final CommitterFactory factory;
 
-  public CheckpointCursorCommitter(CursorClient cursorCommitter) {
-    this.cursorCommitter = cursorCommitter;
+  public CheckpointCursorCommitter(CommitterFactory factory) {
+    this.factory = factory;
   }
 
   public synchronized void addCheckpoint(
@@ -60,7 +59,7 @@ public class CheckpointCursorCommitter implements AutoCloseable {
 
   private void commitCursor(SubscriptionPartitionSplit split) {
     ApiFutures.addCallback(
-        cursorCommitter.commitCursor(split.subscriptionPath(), split.partition(), split.start()),
+        factory.getCommitter(split.partition()).commitOffset(split.start()),
         new ApiFutureCallback<Void>() {
           @Override
           public void onFailure(Throwable throwable) {
@@ -98,6 +97,6 @@ public class CheckpointCursorCommitter implements AutoCloseable {
 
   @Override
   public void close() {
-    cursorCommitter.close();
+    factory.close();
   }
 }

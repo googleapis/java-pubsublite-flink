@@ -30,7 +30,7 @@ import com.google.cloud.pubsublite.flink.MessageTimestampExtractor;
 import com.google.cloud.pubsublite.flink.PubsubLiteDeserializationSchema;
 import com.google.cloud.pubsublite.flink.internal.source.split.SubscriptionPartitionSplit;
 import com.google.cloud.pubsublite.internal.BlockingPullSubscriber;
-import com.google.cloud.pubsublite.internal.CursorClient;
+import com.google.cloud.pubsublite.internal.wire.Committer;
 import com.google.cloud.pubsublite.proto.Cursor;
 import com.google.cloud.pubsublite.proto.PubSubMessage;
 import com.google.common.collect.ImmutableList;
@@ -51,7 +51,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class PubsubLiteSourceReaderTest {
   @Mock PullSubscriberFactory mockFactory;
-  @Mock CursorClient mockCursorClient;
+  @Mock CommitterFactory mockCommitterFactory;
+  @Mock Committer mockCommitter0;
+  @Mock Committer mockCommitter1;
 
   @Mock(answer = RETURNS_DEEP_STUBS)
   SourceReaderContext mockContext;
@@ -83,16 +85,18 @@ public class PubsubLiteSourceReaderTest {
     reader =
         new PubsubLiteSourceReader<>(
             new PubsubLiteRecordEmitter<>(),
-            mockCursorClient,
             () ->
                 new DeserializingSplitReader<>(
                     new MessageSplitReader(mockFactory),
                     PubsubLiteDeserializationSchema.dataOnly(new SimpleStringSchema()),
                     MessageTimestampExtractor.publishTimeExtractor()),
             new Configuration(),
-            mockContext);
-    when(mockCursorClient.commitCursor(any(), any(), any()))
-        .thenReturn(ApiFutures.immediateFuture(null));
+            mockContext,
+            mockCommitterFactory);
+    when(mockCommitterFactory.getCommitter(Partition.of(0))).thenReturn(mockCommitter0);
+    when(mockCommitterFactory.getCommitter(Partition.of(1))).thenReturn(mockCommitter1);
+    when(mockCommitter0.commitOffset(any())).thenReturn(ApiFutures.immediateFuture(null));
+    when(mockCommitter1.commitOffset(any())).thenReturn(ApiFutures.immediateFuture(null));
   }
 
   @Test(timeout = 1000)
@@ -110,8 +114,8 @@ public class PubsubLiteSourceReaderTest {
 
     reader.snapshotState(1);
     reader.notifyCheckpointComplete(1);
-    verify(mockCursorClient).commitCursor(exampleSubscriptionPath(), Partition.of(0), Offset.of(2));
-    verify(mockCursorClient).commitCursor(exampleSubscriptionPath(), Partition.of(1), Offset.of(3));
+    verify(mockCommitter0).commitOffset(Offset.of(2));
+    verify(mockCommitter1).commitOffset(Offset.of(3));
 
     while (output.getEmittedRecords().size() < 6) {
       reader.pollNext(output);

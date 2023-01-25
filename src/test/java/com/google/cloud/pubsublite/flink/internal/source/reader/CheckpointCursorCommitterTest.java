@@ -27,7 +27,7 @@ import com.google.api.core.ApiFutures;
 import com.google.cloud.pubsublite.Offset;
 import com.google.cloud.pubsublite.Partition;
 import com.google.cloud.pubsublite.flink.internal.source.split.SubscriptionPartitionSplit;
-import com.google.cloud.pubsublite.internal.CursorClient;
+import com.google.cloud.pubsublite.internal.wire.Committer;
 import com.google.common.collect.ImmutableList;
 import org.junit.Before;
 import org.junit.Test;
@@ -37,14 +37,15 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class CheckpointCursorCommitterTest {
-  @Mock CursorClient mockCursorClient;
+  @Mock CommitterFactory mockCommitterFactory;
+  @Mock Committer mockCommitter;
   CheckpointCursorCommitter cursorCommitter;
 
   @Before
   public void setUp() {
-    cursorCommitter = new CheckpointCursorCommitter(mockCursorClient);
-    when(mockCursorClient.commitCursor(any(), any(), any()))
-        .thenReturn(ApiFutures.immediateFuture(null));
+    cursorCommitter = new CheckpointCursorCommitter(mockCommitterFactory);
+    when(mockCommitterFactory.getCommitter(any())).thenReturn(mockCommitter);
+    when(mockCommitter.commitOffset(any())).thenReturn(ApiFutures.immediateFuture(null));
   }
 
   public static SubscriptionPartitionSplit splitFromPartition(Partition partition) {
@@ -57,8 +58,8 @@ public class CheckpointCursorCommitterTest {
     cursorCommitter.notifySplitFinished(ImmutableList.of(split));
     cursorCommitter.addCheckpoint(1, ImmutableList.of());
     cursorCommitter.notifyCheckpointComplete(1);
-    verify(mockCursorClient)
-        .commitCursor(split.subscriptionPath(), split.partition(), split.start());
+    verify(mockCommitterFactory).getCommitter(split.partition());
+    verify(mockCommitter).commitOffset(split.start());
   }
 
   @Test
@@ -66,8 +67,8 @@ public class CheckpointCursorCommitterTest {
     SubscriptionPartitionSplit split = splitFromPartition(examplePartition());
     cursorCommitter.addCheckpoint(1, ImmutableList.of(split));
     cursorCommitter.notifyCheckpointComplete(1);
-    verify(mockCursorClient)
-        .commitCursor(split.subscriptionPath(), split.partition(), split.start());
+    verify(mockCommitterFactory).getCommitter(split.partition());
+    verify(mockCommitter).commitOffset(split.start());
   }
 
   @Test
@@ -75,7 +76,7 @@ public class CheckpointCursorCommitterTest {
     SubscriptionPartitionSplit split = splitFromPartition(examplePartition());
     cursorCommitter.addCheckpoint(1, ImmutableList.of(split));
     cursorCommitter.notifyCheckpointComplete(4);
-    verifyNoInteractions(mockCursorClient);
+    verifyNoInteractions(mockCommitter);
   }
 
   @Test
@@ -88,15 +89,15 @@ public class CheckpointCursorCommitterTest {
 
     // Checkpoint 1 is committed, removing checkpoint 2
     cursorCommitter.notifyCheckpointComplete(1);
-    verify(mockCursorClient)
-        .commitCursor(split1.subscriptionPath(), split1.partition(), split1.start());
+    verify(mockCommitterFactory).getCommitter(split1.partition());
+    verify(mockCommitter).commitOffset(split1.start());
     cursorCommitter.notifyCheckpointComplete(2);
-    verifyNoMoreInteractions(mockCursorClient);
+    verifyNoMoreInteractions(mockCommitter);
   }
 
   @Test
   public void testClose() {
     cursorCommitter.close();
-    verify(mockCursorClient).close();
+    verify(mockCommitterFactory).close();
   }
 }
