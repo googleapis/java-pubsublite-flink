@@ -22,6 +22,7 @@ import com.google.cloud.pubsublite.flink.internal.source.enumerator.SingleSubscr
 import com.google.cloud.pubsublite.flink.internal.source.enumerator.SplitDiscovery;
 import com.google.cloud.pubsublite.flink.internal.source.enumerator.SplitEnumeratorCheckpointSerializer;
 import com.google.cloud.pubsublite.flink.internal.source.enumerator.UniformPartitionAssigner;
+import com.google.cloud.pubsublite.flink.internal.source.reader.CommitterCache;
 import com.google.cloud.pubsublite.flink.internal.source.reader.PubsubLiteRecordEmitter;
 import com.google.cloud.pubsublite.flink.internal.source.reader.PubsubLiteSourceReader;
 import com.google.cloud.pubsublite.flink.internal.source.split.SubscriptionPartitionSplit;
@@ -74,10 +75,10 @@ public class PubsubLiteSource<OutputT>
     SourceAssembler<OutputT> assembler = new SourceAssembler<>(settings);
     return new PubsubLiteSourceReader<>(
         new PubsubLiteRecordEmitter<>(),
-        assembler.getCursorClientRemoveThis(),
         assembler.getSplitReaderSupplier(),
         new Configuration(),
-        readerContext);
+        readerContext,
+        new CommitterCache(assembler::getCommitter));
   }
 
   @Override
@@ -89,7 +90,7 @@ public class PubsubLiteSource<OutputT>
         UniformPartitionAssigner.create(),
         SingleSubscriptionSplitDiscovery.create(
             assembler.newAdminClient(),
-            assembler.getCursorClientRemoveThis(),
+            assembler.getCursorClient(),
             assembler.getTopicPath(),
             settings.subscriptionPath()));
   }
@@ -106,7 +107,7 @@ public class PubsubLiteSource<OutputT>
             checkpoint.getDiscovery(),
             assigner.listSplits(),
             assembler.newAdminClient(),
-            assembler.getCursorClientRemoveThis());
+            assembler.getCursorClient());
     return new PubsubLiteSplitEnumerator(enumContext, assigner, discovery);
   }
 
