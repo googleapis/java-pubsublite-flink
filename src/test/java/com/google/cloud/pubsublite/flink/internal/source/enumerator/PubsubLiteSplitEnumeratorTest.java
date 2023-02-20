@@ -19,8 +19,6 @@ import static com.google.cloud.pubsublite.internal.testing.UnitTestExamples.exam
 import static com.google.cloud.pubsublite.internal.testing.UnitTestExamples.exampleSubscriptionPath;
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.cloud.pubsublite.Partition;
@@ -30,7 +28,6 @@ import com.google.cloud.pubsublite.flink.proto.SplitEnumeratorCheckpoint.Discove
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Multimap;
-import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ScheduledFuture;
@@ -87,20 +84,6 @@ public class PubsubLiteSplitEnumeratorTest {
         task.get();
       }
     }
-  }
-
-  @Test
-  public void testClose() throws Exception {
-    PubsubLiteSplitEnumerator enumerator = createEnumerator();
-    enumerator.close();
-    verify(discovery).close();
-  }
-
-  @Test
-  public void testClose_Exception() throws Exception {
-    PubsubLiteSplitEnumerator enumerator = createEnumerator();
-    doThrow(new Exception("error")).when(discovery).close();
-    assertThrows(IOException.class, enumerator::close);
   }
 
   @Test

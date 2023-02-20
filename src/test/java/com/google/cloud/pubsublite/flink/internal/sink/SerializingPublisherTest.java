@@ -19,8 +19,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.cloud.Tuple;
-import com.google.cloud.pubsublite.Message;
 import com.google.cloud.pubsublite.flink.PubsubLiteSerializationSchema;
+import com.google.cloud.pubsublite.proto.PubSubMessage;
 import com.google.protobuf.ByteString;
 import java.time.Instant;
 import org.junit.Before;
@@ -31,7 +31,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SerializingPublisherTest {
-  @Mock BulkWaitPublisher<Message> mockPublisher;
+  @Mock BulkWaitPublisher<PubSubMessage> mockPublisher;
   @Mock PubsubLiteSerializationSchema<String> mockSchema;
   SerializingPublisher<String> publisher;
 
@@ -49,7 +49,8 @@ public class SerializingPublisherTest {
   @Test
   public void testPublish() throws Exception {
     Instant timestamp = Instant.ofEpochMilli(1000);
-    Message message = Message.builder().setData(ByteString.copyFromUtf8("data")).build();
+    PubSubMessage message =
+        PubSubMessage.newBuilder().setData(ByteString.copyFromUtf8("data")).build();
     when(mockSchema.serialize("message", timestamp)).thenReturn(message);
     publisher.publish(Tuple.of("message", timestamp));
     verify(mockPublisher).publish(message);

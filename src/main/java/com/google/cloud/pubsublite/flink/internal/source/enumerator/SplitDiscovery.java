@@ -18,10 +18,9 @@ package com.google.cloud.pubsublite.flink.internal.source.enumerator;
 import com.google.api.gax.rpc.ApiException;
 import com.google.cloud.pubsublite.flink.internal.source.split.SubscriptionPartitionSplit;
 import com.google.cloud.pubsublite.flink.proto.SplitEnumeratorCheckpoint;
-import java.io.Closeable;
 import java.util.List;
 
-public interface SplitDiscovery extends Closeable {
+public interface SplitDiscovery {
   List<SubscriptionPartitionSplit> discoverNewSplits() throws ApiException;
 
   SplitEnumeratorCheckpoint.Discovery checkpoint();

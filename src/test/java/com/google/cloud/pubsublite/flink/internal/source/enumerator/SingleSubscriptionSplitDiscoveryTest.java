@@ -19,7 +19,6 @@ import static com.google.cloud.pubsublite.internal.testing.UnitTestExamples.exam
 import static com.google.cloud.pubsublite.internal.testing.UnitTestExamples.exampleTopicPath;
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.api.core.ApiFutures;
@@ -165,12 +164,5 @@ public class SingleSubscriptionSplitDiscoveryTest {
         () ->
             SingleSubscriptionSplitDiscovery.fromCheckpoint(
                 proto, splits, mockAdminClient, mockCursorClient));
-  }
-
-  @Test
-  public void testClose() throws Exception {
-    discovery.close();
-    verify(mockAdminClient).close();
-    verify(mockCursorClient).close();
   }
 }

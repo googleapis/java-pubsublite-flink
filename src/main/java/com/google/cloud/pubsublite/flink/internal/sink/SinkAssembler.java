@@ -23,9 +23,9 @@ import com.google.api.gax.rpc.ApiCallContext;
 import com.google.api.gax.rpc.ApiException;
 import com.google.cloud.pubsublite.AdminClient;
 import com.google.cloud.pubsublite.AdminClientSettings;
+import com.google.cloud.pubsublite.CloudRegion;
 import com.google.cloud.pubsublite.MessageMetadata;
 import com.google.cloud.pubsublite.Partition;
-import com.google.cloud.pubsublite.TopicPath;
 import com.google.cloud.pubsublite.cloudpubsub.PublisherSettings;
 import com.google.cloud.pubsublite.flink.PubsubLiteSinkSettings;
 import com.google.cloud.pubsublite.internal.Publisher;
@@ -35,31 +35,29 @@ import com.google.cloud.pubsublite.internal.wire.PubsubContext;
 import com.google.cloud.pubsublite.internal.wire.PubsubContext.Framework;
 import com.google.cloud.pubsublite.internal.wire.RoutingMetadata;
 import com.google.cloud.pubsublite.internal.wire.SinglePartitionPublisherBuilder;
+import com.google.cloud.pubsublite.v1.AdminServiceClient;
+import com.google.cloud.pubsublite.v1.AdminServiceSettings;
 import com.google.cloud.pubsublite.v1.PublisherServiceClient;
 import com.google.cloud.pubsublite.v1.PublisherServiceSettings;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class SinkAssembler<InputT> {
   private static final Framework FRAMEWORK = Framework.of("FLINK");
-  private static final ConcurrentHashMap<TopicPath, PublisherServiceClient> PUB_CLIENTS =
-      new ConcurrentHashMap<>();
 
   private PublisherServiceClient newPublisherServiceClient() throws ApiException {
     try {
       PublisherServiceSettings.Builder settingsBuilder = PublisherServiceSettings.newBuilder();
-      return PublisherServiceClient.create(
-          addDefaultSettings(settings.topicPath().location().extractRegion(), settingsBuilder));
+      return PublisherServiceClient.create(addDefaultSettings(extractRegion(), settingsBuilder));
     } catch (Throwable t) {
       throw toCanonical(t).underlying;
     }
   }
 
-  private PublisherServiceClient getPublisherServiceClient() {
-    return PUB_CLIENTS.computeIfAbsent(settings.topicPath(), path -> newPublisherServiceClient());
+  public CloudRegion extractRegion() {
+    return settings.topicPath().location().extractRegion();
   }
 
   public Publisher<MessageMetadata> newPublisher() {
-    PublisherServiceClient client = getPublisherServiceClient();
+    PublisherServiceClient client = newPublisherServiceClient();
     return PartitionCountWatchingPublisherSettings.newBuilder()
         .setTopic(settings.topicPath())
         .setPublisherFactory(
@@ -87,16 +85,23 @@ public class SinkAssembler<InputT> {
                 client.close();
               }
             })
-        .setAdminClient(newAdminClient())
+        .setAdminClient(newAdminClient(extractRegion()))
         .build()
         .instantiate();
   }
 
-  public AdminClient newAdminClient() {
-    return AdminClient.create(
-        AdminClientSettings.newBuilder()
-            .setRegion(settings.topicPath().location().extractRegion())
-            .build());
+  private static AdminClient newAdminClient(CloudRegion region) throws ApiException {
+    try {
+      AdminServiceSettings.Builder settingsBuilder = AdminServiceSettings.newBuilder();
+      return AdminClient.create(
+          AdminClientSettings.newBuilder()
+              .setServiceClient(
+                  AdminServiceClient.create(addDefaultSettings(region, settingsBuilder)))
+              .setRegion(region)
+              .build());
+    } catch (Throwable t) {
+      throw toCanonical(t).underlying;
+    }
   }
 
   private final PubsubLiteSinkSettings<InputT> settings;

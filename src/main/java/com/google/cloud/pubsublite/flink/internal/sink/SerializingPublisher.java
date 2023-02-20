@@ -16,17 +16,17 @@
 package com.google.cloud.pubsublite.flink.internal.sink;
 
 import com.google.cloud.Tuple;
-import com.google.cloud.pubsublite.Message;
 import com.google.cloud.pubsublite.flink.PubsubLiteSerializationSchema;
 import com.google.cloud.pubsublite.internal.CheckedApiException;
+import com.google.cloud.pubsublite.proto.PubSubMessage;
 import java.time.Instant;
 
 public class SerializingPublisher<T> implements BulkWaitPublisher<Tuple<T, Instant>> {
-  private final BulkWaitPublisher<Message> inner;
+  private final BulkWaitPublisher<PubSubMessage> inner;
   private final PubsubLiteSerializationSchema<T> schema;
 
   public SerializingPublisher(
-      BulkWaitPublisher<Message> inner, PubsubLiteSerializationSchema<T> schema) {
+      BulkWaitPublisher<PubSubMessage> inner, PubsubLiteSerializationSchema<T> schema) {
     this.inner = inner;
     this.schema = schema;
   }

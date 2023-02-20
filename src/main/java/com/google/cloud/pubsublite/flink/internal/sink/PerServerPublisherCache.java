@@ -21,8 +21,12 @@ import com.google.cloud.pubsublite.internal.Publisher;
 import com.google.common.annotations.VisibleForTesting;
 
 public class PerServerPublisherCache {
-  private static final PublisherCache<PubsubLiteSinkSettings<?>> cache =
-      new PublisherCache<>(PerServerPublisherCache::newPublisher);
+  private static final PublisherCache cache =
+      new PublisherCache(PerServerPublisherCache::newPublisher);
+
+  static {
+    Runtime.getRuntime().addShutdownHook(new Thread(cache::close));
+  }
 
   private static Publisher<MessageMetadata> newPublisher(PubsubLiteSinkSettings<?> options) {
     SinkAssembler<?> assembler = new SinkAssembler<>(options);
@@ -34,7 +38,7 @@ public class PerServerPublisherCache {
   }
 
   @VisibleForTesting
-  public static PublisherCache<PubsubLiteSinkSettings<?>> getCache() {
+  public static PublisherCache getCache() {
     return cache;
   }
 }

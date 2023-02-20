@@ -24,6 +24,7 @@ import com.google.api.gax.rpc.ApiCallContext;
 import com.google.api.gax.rpc.ApiException;
 import com.google.cloud.pubsublite.AdminClient;
 import com.google.cloud.pubsublite.AdminClientSettings;
+import com.google.cloud.pubsublite.CloudRegion;
 import com.google.cloud.pubsublite.Partition;
 import com.google.cloud.pubsublite.SubscriptionPath;
 import com.google.cloud.pubsublite.TopicPath;
@@ -45,6 +46,8 @@ import com.google.cloud.pubsublite.internal.wire.SubscriberBuilder;
 import com.google.cloud.pubsublite.internal.wire.SubscriberFactory;
 import com.google.cloud.pubsublite.proto.Cursor;
 import com.google.cloud.pubsublite.proto.SeekRequest;
+import com.google.cloud.pubsublite.v1.AdminServiceClient;
+import com.google.cloud.pubsublite.v1.AdminServiceSettings;
 import com.google.cloud.pubsublite.v1.CursorServiceClient;
 import com.google.cloud.pubsublite.v1.CursorServiceSettings;
 import com.google.cloud.pubsublite.v1.SubscriberServiceClient;
@@ -57,13 +60,16 @@ public final class SourceAssembler<OutputT> {
   private static final Framework FRAMEWORK = Framework.of("FLINK");
   private static final ConcurrentHashMap<SubscriptionPath, TopicPath> KNOWN_PATHS =
       new ConcurrentHashMap<>();
-  private static final ConcurrentHashMap<SubscriptionPath, SubscriberServiceClient> SUB_CLIENTS =
+  private static final ConcurrentHashMap<CloudRegion, SubscriberServiceClient> SUB_CLIENTS =
       new ConcurrentHashMap<>();
-  private static final ConcurrentHashMap<SubscriptionPath, CursorServiceClient> CURSOR_CLIENTS =
+  private static final ConcurrentHashMap<CloudRegion, CursorServiceClient> CURSOR_CLIENTS =
+      new ConcurrentHashMap<>();
+  private static final ConcurrentHashMap<CloudRegion, AdminServiceClient> ADMIN_CLIENTS =
       new ConcurrentHashMap<>();
 
   private TopicPath lookupTopicPath(SubscriptionPath subscriptionPath) {
-    try (AdminClient adminClient = newAdminClient()) {
+    AdminClient adminClient = getUnownedAdminClient();
+    try {
       return TopicPath.parse(
           adminClient.getSubscription(subscriptionPath).get(1, MINUTES).getTopic());
     } catch (Throwable t) {
@@ -75,12 +81,15 @@ public final class SourceAssembler<OutputT> {
     return KNOWN_PATHS.computeIfAbsent(settings.subscriptionPath(), this::lookupTopicPath);
   }
 
-  private SubscriberServiceClient newSubscriberServiceClient() throws ApiException {
+  public CloudRegion extractRegion() {
+    return settings.subscriptionPath().location().extractRegion();
+  }
+
+  private static SubscriberServiceClient newSubscriberServiceClient(CloudRegion region)
+      throws ApiException {
     try {
       SubscriberServiceSettings.Builder settingsBuilder = SubscriberServiceSettings.newBuilder();
-      return SubscriberServiceClient.create(
-          addDefaultSettings(
-              settings.subscriptionPath().location().extractRegion(), settingsBuilder));
+      return SubscriberServiceClient.create(addDefaultSettings(region, settingsBuilder));
     } catch (Throwable t) {
       throw toCanonical(t).underlying;
     }
@@ -88,7 +97,33 @@ public final class SourceAssembler<OutputT> {
 
   private SubscriberServiceClient getSubscriberServiceClient() {
     return SUB_CLIENTS.computeIfAbsent(
-        settings.subscriptionPath(), path -> newSubscriberServiceClient());
+        extractRegion(), SourceAssembler::newSubscriberServiceClient);
+  }
+
+  private static CursorServiceClient newCursorClient(CloudRegion region) throws ApiException {
+    try {
+      CursorServiceSettings.Builder settingsBuilder = CursorServiceSettings.newBuilder();
+      return CursorServiceClient.create(addDefaultSettings(region, settingsBuilder));
+    } catch (Throwable t) {
+      throw toCanonical(t).underlying;
+    }
+  }
+
+  private CursorServiceClient getCursorServiceClient() {
+    return CURSOR_CLIENTS.computeIfAbsent(extractRegion(), SourceAssembler::newCursorClient);
+  }
+
+  private static AdminServiceClient newAdminClient(CloudRegion region) throws ApiException {
+    try {
+      AdminServiceSettings.Builder settingsBuilder = AdminServiceSettings.newBuilder();
+      return AdminServiceClient.create(addDefaultSettings(region, settingsBuilder));
+    } catch (Throwable t) {
+      throw toCanonical(t).underlying;
+    }
+  }
+
+  private AdminServiceClient getAdminServiceClient() {
+    return ADMIN_CLIENTS.computeIfAbsent(extractRegion(), SourceAssembler::newAdminClient);
   }
 
   private SubscriberFactory getSubscriberFactory(SubscriptionPartitionSplit split) {
@@ -127,21 +162,6 @@ public final class SourceAssembler<OutputT> {
             settings.timestampSelector());
   }
 
-  private CursorServiceClient newCursorClient() throws ApiException {
-    try {
-      CursorServiceSettings.Builder settingsBuilder = CursorServiceSettings.newBuilder();
-      return CursorServiceClient.create(
-          addDefaultSettings(
-              settings.subscriptionPath().location().extractRegion(), settingsBuilder));
-    } catch (Throwable t) {
-      throw toCanonical(t).underlying;
-    }
-  }
-
-  private CursorServiceClient getCursorServiceClient() {
-    return CURSOR_CLIENTS.computeIfAbsent(settings.subscriptionPath(), path -> newCursorClient());
-  }
-
   public Committer getCommitter(Partition partition) {
     CursorServiceClient client = getCursorServiceClient();
     return CommitterSettings.newBuilder()
@@ -153,18 +173,19 @@ public final class SourceAssembler<OutputT> {
         .instantiate();
   }
 
-  public CursorClient getCursorClient() {
+  public CursorClient getUnownedCursorClient() {
     return CursorClient.create(
         CursorClientSettings.newBuilder()
-            .setRegion(settings.subscriptionPath().location().extractRegion())
+            .setRegion(extractRegion())
             .setServiceClient(getCursorServiceClient())
             .build());
   }
 
-  public AdminClient newAdminClient() {
+  public AdminClient getUnownedAdminClient() {
     return AdminClient.create(
         AdminClientSettings.newBuilder()
-            .setRegion(settings.subscriptionPath().location().extractRegion())
+            .setRegion(extractRegion())
+            .setServiceClient(getAdminServiceClient())
             .build());
   }
 

@@ -30,6 +30,7 @@ import com.google.cloud.pubsublite.MessageMetadata;
 import com.google.cloud.pubsublite.internal.CheckedApiException;
 import com.google.cloud.pubsublite.internal.Publisher;
 import com.google.cloud.pubsublite.internal.testing.FakeApiService;
+import com.google.cloud.pubsublite.proto.PubSubMessage;
 import com.google.protobuf.ByteString;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -49,13 +50,14 @@ public class MessagePublisherTest {
 
   @Before
   public void setUp() {
+    fakeInnerPublisher.startAsync();
     messagePublisher = new MessagePublisher(fakeInnerPublisher, 1);
   }
 
   @Test
   public void testPublish() throws Exception {
-    Message message1 = Message.builder().build();
-    when(fakeInnerPublisher.publish(message1))
+    PubSubMessage message1 = PubSubMessage.newBuilder().build();
+    when(fakeInnerPublisher.publish(Message.fromProto(message1)))
         .thenReturn(
             ApiFutures.immediateFuture(MessageMetadata.of(examplePartition(), exampleOffset())));
 
@@ -63,17 +65,17 @@ public class MessagePublisherTest {
 
     messagePublisher.waitUntilNoOutstandingPublishes();
 
-    verify(fakeInnerPublisher).publish(message1);
+    verify(fakeInnerPublisher).publish(Message.fromProto(message1));
   }
 
   @Test
   public void testSinglePublishFailure() throws Exception {
-    Message message1 = Message.builder().build();
-    when(fakeInnerPublisher.publish(message1))
+    PubSubMessage message1 = PubSubMessage.newBuilder().build();
+    when(fakeInnerPublisher.publish(Message.fromProto(message1)))
         .thenReturn(
             ApiFutures.immediateFailedFuture(new CheckedApiException(Code.INTERNAL).underlying));
     messagePublisher.publish(message1);
-    verify(fakeInnerPublisher).publish(message1);
+    verify(fakeInnerPublisher).publish(Message.fromProto(message1));
 
     assertThrows(
         CheckedApiException.class, () -> messagePublisher.waitUntilNoOutstandingPublishes());
@@ -81,11 +83,11 @@ public class MessagePublisherTest {
 
   @Test
   public void testCheckpointWithOutstandingPublish() throws Exception {
-    Message message1 = Message.builder().build();
+    PubSubMessage message1 = PubSubMessage.newBuilder().build();
     SettableApiFuture<MessageMetadata> future = SettableApiFuture.create();
-    when(fakeInnerPublisher.publish(message1)).thenReturn(future);
+    when(fakeInnerPublisher.publish(Message.fromProto(message1))).thenReturn(future);
     messagePublisher.publish(message1);
-    verify(fakeInnerPublisher).publish(message1);
+    verify(fakeInnerPublisher).publish(Message.fromProto(message1));
 
     Future<?> checkpointFuture =
         Executors.newSingleThreadExecutor()
@@ -106,15 +108,17 @@ public class MessagePublisherTest {
 
   @Test
   public void testPublishesOfMaximumSizeSerialized() throws Exception {
-    Message message1 = Message.builder().setData(ByteString.copyFromUtf8("one")).build();
-    Message message2 = Message.builder().setData(ByteString.copyFromUtf8("two")).build();
+    PubSubMessage message1 =
+        PubSubMessage.newBuilder().setData(ByteString.copyFromUtf8("one")).build();
+    PubSubMessage message2 =
+        PubSubMessage.newBuilder().setData(ByteString.copyFromUtf8("two")).build();
     SettableApiFuture<MessageMetadata> firstPublish = SettableApiFuture.create();
-    when(fakeInnerPublisher.publish(message1)).thenReturn(firstPublish);
-    when(fakeInnerPublisher.publish(message2))
+    when(fakeInnerPublisher.publish(Message.fromProto(message1))).thenReturn(firstPublish);
+    when(fakeInnerPublisher.publish(Message.fromProto(message2)))
         .thenReturn(
             ApiFutures.immediateFuture(MessageMetadata.of(examplePartition(), exampleOffset())));
     messagePublisher.publish(message1);
-    verify(fakeInnerPublisher).publish(message1);
+    verify(fakeInnerPublisher).publish(Message.fromProto(message1));
 
     Future<?> secondPublish =
         Executors.newSingleThreadExecutor()

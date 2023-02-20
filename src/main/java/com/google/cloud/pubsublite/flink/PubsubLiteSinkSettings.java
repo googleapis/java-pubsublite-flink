@@ -16,7 +16,6 @@
 package com.google.cloud.pubsublite.flink;
 
 import com.google.auto.value.AutoValue;
-import com.google.cloud.pubsublite.Message;
 import com.google.cloud.pubsublite.TopicPath;
 import java.io.Serializable;
 
@@ -30,11 +29,6 @@ public abstract class PubsubLiteSinkSettings<InputT> implements Serializable {
     return new AutoValue_PubsubLiteSinkSettings.Builder<InputT>()
         .setMaxBytesOutstanding(DEFAULT_MAX_BYTES_OUTSTANDING)
         .setSerializationSchema(schema);
-  }
-
-  // Create a sink which will accept already serialized pubsub messages/
-  public static Builder<Message> messagesBuilder() {
-    return builder(PubsubLiteSerializationSchema.messageSchema());
   }
 
   // Required. The path of the topic to publish messages to.

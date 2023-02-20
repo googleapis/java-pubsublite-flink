@@ -116,10 +116,4 @@ public class SingleSubscriptionSplitDiscovery implements SplitDiscovery {
         .setTopic(topicPath.toString())
         .build();
   }
-
-  @Override
-  public synchronized void close() {
-    try (AdminClient a = adminClient;
-        CursorClient c = cursorClient) {}
-  }
 }

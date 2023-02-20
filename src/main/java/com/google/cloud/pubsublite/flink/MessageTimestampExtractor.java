@@ -16,21 +16,21 @@
 package com.google.cloud.pubsublite.flink;
 
 import com.google.cloud.Timestamp;
-import com.google.cloud.pubsublite.SequencedMessage;
+import com.google.cloud.pubsublite.proto.SequencedMessage;
 import java.io.Serializable;
 import java.time.Instant;
 
 public interface MessageTimestampExtractor extends Serializable {
   static MessageTimestampExtractor publishTimeExtractor() {
-    return m -> Timestamp.fromProto(m.publishTime()).toDate().toInstant();
+    return m -> Timestamp.fromProto(m.getPublishTime()).toDate().toInstant();
   }
 
   static MessageTimestampExtractor eventTimeExtractor() {
     return m -> {
-      if (m.message().eventTime().isPresent()) {
-        return Timestamp.fromProto(m.message().eventTime().get()).toDate().toInstant();
+      if (m.getMessage().hasEventTime()) {
+        return Timestamp.fromProto(m.getMessage().getEventTime()).toDate().toInstant();
       }
-      return Timestamp.fromProto(m.publishTime()).toDate().toInstant();
+      return Timestamp.fromProto(m.getPublishTime()).toDate().toInstant();
     };
   }
 

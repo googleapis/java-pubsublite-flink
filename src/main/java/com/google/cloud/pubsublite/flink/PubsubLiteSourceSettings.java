@@ -16,7 +16,6 @@
 package com.google.cloud.pubsublite.flink;
 
 import com.google.auto.value.AutoValue;
-import com.google.cloud.pubsublite.SequencedMessage;
 import com.google.cloud.pubsublite.SubscriptionPath;
 import com.google.cloud.pubsublite.cloudpubsub.FlowControlSettings;
 import java.io.Serializable;
@@ -30,10 +29,6 @@ public abstract class PubsubLiteSourceSettings<OutputT> implements Serializable 
     return new AutoValue_PubsubLiteSourceSettings.Builder<OutputT>()
         .setDeserializationSchema(schema)
         .setTimestampSelector(MessageTimestampExtractor.publishTimeExtractor());
-  }
-
-  public static Builder<SequencedMessage> messagesBuilder() {
-    return builder(PubsubLiteDeserializationSchema.sequencedMessageSchema());
   }
 
   // Required

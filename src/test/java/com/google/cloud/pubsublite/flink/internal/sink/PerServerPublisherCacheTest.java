@@ -18,8 +18,8 @@ package com.google.cloud.pubsublite.flink.internal.sink;
 import static com.google.cloud.pubsublite.internal.testing.UnitTestExamples.exampleTopicPath;
 import static com.google.common.truth.Truth.assertThat;
 
-import com.google.cloud.pubsublite.Message;
 import com.google.cloud.pubsublite.MessageMetadata;
+import com.google.cloud.pubsublite.flink.PubsubLiteSerializationSchema;
 import com.google.cloud.pubsublite.flink.PubsubLiteSinkSettings;
 import com.google.cloud.pubsublite.internal.Publisher;
 import org.junit.Test;
@@ -34,9 +34,11 @@ public class PerServerPublisherCacheTest {
 
   @Test
   public void testCachedOptions() {
-    PubsubLiteSinkSettings<Message> options =
-        PubsubLiteSinkSettings.messagesBuilder().setTopicPath(exampleTopicPath()).build();
-    PerServerPublisherCache.getCache().set(options, publisher);
+    PubsubLiteSinkSettings<byte[]> options =
+        PubsubLiteSinkSettings.builder(PubsubLiteSerializationSchema.dataOnly((byte[] b) -> b))
+            .setTopicPath(exampleTopicPath())
+            .build();
+    PerServerPublisherCache.getCache().set(exampleTopicPath(), publisher);
     assertThat(PerServerPublisherCache.getOrCreate(options)).isEqualTo(publisher);
   }
 }
