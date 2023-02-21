@@ -16,14 +16,17 @@
 package com.google.cloud.pubsublite.flink;
 
 import com.google.cloud.pubsublite.Offset;
-import com.google.cloud.pubsublite.SequencedMessage;
 import com.google.cloud.pubsublite.proto.Cursor;
+import com.google.cloud.pubsublite.proto.PubSubMessage;
+import com.google.cloud.pubsublite.proto.SequencedMessage;
+import com.google.protobuf.util.Timestamps;
 
 public class TestUtilities {
   public static SequencedMessage messageFromOffset(Offset offset) {
-    return SequencedMessage.fromProto(
-        com.google.cloud.pubsublite.proto.SequencedMessage.newBuilder()
-            .setCursor(Cursor.newBuilder().setOffset(offset.value()))
-            .build());
+    return SequencedMessage.newBuilder()
+        .setPublishTime(Timestamps.EPOCH)
+        .setCursor(Cursor.newBuilder().setOffset(offset.value()))
+        .setMessage(PubSubMessage.newBuilder())
+        .build();
   }
 }

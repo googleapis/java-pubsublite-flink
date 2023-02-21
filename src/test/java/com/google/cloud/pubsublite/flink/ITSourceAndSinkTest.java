@@ -110,7 +110,7 @@ public class ITSourceAndSinkTest {
   }
 
   private AdminClient getAdminClient() {
-    return new SourceAssembler<>(sourceSettings()).newAdminClient();
+    return new SourceAssembler<>(sourceSettings()).getUnownedAdminClient();
   }
 
   private static Message messageFromString(String i) {
@@ -157,10 +157,9 @@ public class ITSourceAndSinkTest {
                     .build())
             .setName(subscriptionPath.toString())
             .build();
-    try (AdminClient client = getAdminClient()) {
-      client.createTopic(topic).get();
-      client.createSubscription(subscription).get();
-    }
+    AdminClient client = getAdminClient();
+    client.createTopic(topic).get();
+    client.createSubscription(subscription).get();
     CollectSink.clear();
     staticSet.clear();
     StreamExecutionEnvironment.getExecutionEnvironment().setParallelism(2).enableCheckpointing(100);
@@ -168,10 +167,9 @@ public class ITSourceAndSinkTest {
 
   @After
   public void destroyResources() throws Exception {
-    try (AdminClient client = getAdminClient()) {
-      client.deleteTopic(topicPath).get();
-      client.deleteSubscription(subscriptionPath).get();
-    }
+    AdminClient client = getAdminClient();
+    client.deleteTopic(topicPath).get();
+    client.deleteSubscription(subscriptionPath).get();
     CollectSink.clear();
     staticSet.clear();
   }
@@ -276,7 +274,7 @@ public class ITSourceAndSinkTest {
             })
         .when(publisher)
         .publish(any());
-    PerServerPublisherCache.getCache().set(sinkSettings(), publisher);
+    PerServerPublisherCache.getCache().set(topicPath, publisher);
 
     StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
     env.setRestartStrategy(

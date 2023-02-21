@@ -17,11 +17,11 @@ package com.google.cloud.pubsublite.flink.internal.source.reader;
 
 import com.google.api.core.ApiFuture;
 import com.google.api.core.SettableApiFuture;
-import com.google.cloud.pubsublite.SequencedMessage;
 import com.google.cloud.pubsublite.flink.internal.source.split.SubscriptionPartitionSplit;
 import com.google.cloud.pubsublite.internal.BlockingPullSubscriber;
 import com.google.cloud.pubsublite.internal.CheckedApiException;
 import com.google.cloud.pubsublite.internal.ExtractStatus;
+import com.google.cloud.pubsublite.proto.SequencedMessage;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -59,7 +59,7 @@ public class MessageSplitReader
     for (Map.Entry<String, BlockingPullSubscriber> entry : subscribers.entrySet()) {
       String splitId = entry.getKey();
       BlockingPullSubscriber sub = entry.getValue();
-      sub.messageIfAvailable().ifPresent(m -> messages.put(splitId, m));
+      sub.messageIfAvailable().ifPresent(m -> messages.put(splitId, m.toProto()));
     }
     return messages.build();
   }

@@ -16,13 +16,12 @@
 package com.google.cloud.pubsublite.flink;
 
 import com.google.cloud.Timestamp;
-import com.google.cloud.pubsublite.Message;
+import com.google.cloud.pubsublite.proto.PubSubMessage;
 import com.google.protobuf.ByteString;
 import java.io.Serializable;
 import java.sql.Date;
 import java.time.Instant;
 import org.apache.flink.api.common.serialization.SerializationSchema;
-import org.apache.flink.api.common.serialization.SerializationSchema.InitializationContext;
 
 public interface PubsubLiteSerializationSchema<T> extends Serializable {
   static <T> PubsubLiteSerializationSchema<T> dataOnly(SerializationSchema<T> schema) {
@@ -34,8 +33,8 @@ public interface PubsubLiteSerializationSchema<T> extends Serializable {
       }
 
       @Override
-      public Message serialize(T value, Instant timestamp) {
-        return Message.builder()
+      public PubSubMessage serialize(T value, Instant timestamp) {
+        return PubSubMessage.newBuilder()
             .setData(ByteString.copyFrom(schema.serialize(value)))
             .setEventTime(Timestamp.of(Date.from(timestamp)).toProto())
             .build();
@@ -43,19 +42,7 @@ public interface PubsubLiteSerializationSchema<T> extends Serializable {
     };
   }
 
-  static PubsubLiteSerializationSchema<Message> messageSchema() {
-    return new PubsubLiteSerializationSchema<Message>() {
-      @Override
-      public void open(InitializationContext context) {}
-
-      @Override
-      public Message serialize(Message value, Instant timestamp) {
-        return value;
-      }
-    };
-  }
-
   void open(SerializationSchema.InitializationContext context) throws Exception;
 
-  Message serialize(T value, Instant timestamp);
+  PubSubMessage serialize(T value, Instant timestamp);
 }

@@ -45,6 +45,7 @@ import org.apache.flink.util.UserCodeClassLoader;
 public class PubsubLiteSource<OutputT>
     implements Source<OutputT, SubscriptionPartitionSplit, SplitEnumeratorCheckpoint>,
         ResultTypeQueryable<OutputT> {
+  private static final long serialVersionUID = 2304938420938L;
   private final PubsubLiteSourceSettings<OutputT> settings;
 
   public PubsubLiteSource(PubsubLiteSourceSettings<OutputT> settings) {
@@ -89,8 +90,8 @@ public class PubsubLiteSource<OutputT>
         enumContext,
         UniformPartitionAssigner.create(),
         SingleSubscriptionSplitDiscovery.create(
-            assembler.newAdminClient(),
-            assembler.getCursorClient(),
+            assembler.getUnownedAdminClient(),
+            assembler.getUnownedCursorClient(),
             assembler.getTopicPath(),
             settings.subscriptionPath()));
   }
@@ -106,8 +107,8 @@ public class PubsubLiteSource<OutputT>
         SingleSubscriptionSplitDiscovery.fromCheckpoint(
             checkpoint.getDiscovery(),
             assigner.listSplits(),
-            assembler.newAdminClient(),
-            assembler.getCursorClient());
+            assembler.getUnownedAdminClient(),
+            assembler.getUnownedCursorClient());
     return new PubsubLiteSplitEnumerator(enumContext, assigner, discovery);
   }
 

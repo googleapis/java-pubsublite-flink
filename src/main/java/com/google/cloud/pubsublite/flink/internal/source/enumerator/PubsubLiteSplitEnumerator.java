@@ -17,7 +17,6 @@ package com.google.cloud.pubsublite.flink.internal.source.enumerator;
 
 import com.google.cloud.pubsublite.flink.internal.source.split.SubscriptionPartitionSplit;
 import com.google.cloud.pubsublite.flink.proto.SplitEnumeratorCheckpoint;
-import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -83,13 +82,7 @@ public class PubsubLiteSplitEnumerator
   }
 
   @Override
-  public void close() throws IOException {
-    try {
-      discovery.close();
-    } catch (Exception e) {
-      throw new IOException(e);
-    }
-  }
+  public void close() {}
 
   private List<SubscriptionPartitionSplit> discoverNewSplits() {
     return discovery.discoverNewSplits();

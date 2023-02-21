@@ -15,6 +15,8 @@
  */
 package com.google.cloud.pubsublite.flink.internal.sink;
 
+import static com.google.common.util.concurrent.MoreExecutors.directExecutor;
+
 import com.google.api.core.ApiFuture;
 import com.google.api.core.ApiFutures;
 import com.google.cloud.pubsublite.Message;
@@ -22,14 +24,14 @@ import com.google.cloud.pubsublite.MessageMetadata;
 import com.google.cloud.pubsublite.internal.CheckedApiException;
 import com.google.cloud.pubsublite.internal.ExtractStatus;
 import com.google.cloud.pubsublite.internal.Publisher;
-import com.google.cloud.pubsublite.internal.wire.SystemExecutors;
+import com.google.cloud.pubsublite.proto.PubSubMessage;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Semaphore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MessagePublisher implements BulkWaitPublisher<Message> {
+public class MessagePublisher implements BulkWaitPublisher<PubSubMessage> {
   private static final Logger LOG = LoggerFactory.getLogger(MessagePublisher.class);
   private final Publisher<MessageMetadata> publisher;
   private final List<ApiFuture<MessageMetadata>> publishes;
@@ -44,8 +46,8 @@ public class MessagePublisher implements BulkWaitPublisher<Message> {
     this.bytesOutstanding = new Semaphore(maxBytesOutstanding);
   }
 
-  private int getAccountedSize(Message message) {
-    long size = message.toProto().getSerializedSize();
+  private int getAccountedSize(PubSubMessage message) {
+    long size = message.getSerializedSize();
     if (size > maxBytesOutstanding) {
       return maxBytesOutstanding;
     }
@@ -53,15 +55,16 @@ public class MessagePublisher implements BulkWaitPublisher<Message> {
   }
 
   @Override
-  public void publish(Message message) throws InterruptedException {
+  public void publish(PubSubMessage message) throws InterruptedException {
+    publisher.awaitRunning();
     final int size = getAccountedSize(message);
-    if (!bytesOutstanding.tryAcquire()) {
+    if (!bytesOutstanding.tryAcquire(size)) {
       LOG.warn(
           "Publisher flow controlled due to too many bytes (>{}) outstanding", maxBytesOutstanding);
       bytesOutstanding.acquire(size);
     }
-    ApiFuture<MessageMetadata> future = publisher.publish(message);
-    future.addListener(() -> bytesOutstanding.release(size), SystemExecutors.getAlarmExecutor());
+    ApiFuture<MessageMetadata> future = publisher.publish(Message.fromProto(message));
+    future.addListener(() -> bytesOutstanding.release(size), directExecutor());
     publishes.add(future);
   }
 

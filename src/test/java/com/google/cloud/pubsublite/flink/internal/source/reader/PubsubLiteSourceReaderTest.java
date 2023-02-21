@@ -25,7 +25,6 @@ import static org.mockito.Mockito.when;
 import com.google.api.core.ApiFutures;
 import com.google.cloud.pubsublite.Offset;
 import com.google.cloud.pubsublite.Partition;
-import com.google.cloud.pubsublite.SequencedMessage;
 import com.google.cloud.pubsublite.flink.MessageTimestampExtractor;
 import com.google.cloud.pubsublite.flink.PubsubLiteDeserializationSchema;
 import com.google.cloud.pubsublite.flink.internal.source.split.SubscriptionPartitionSplit;
@@ -33,6 +32,7 @@ import com.google.cloud.pubsublite.internal.BlockingPullSubscriber;
 import com.google.cloud.pubsublite.internal.wire.Committer;
 import com.google.cloud.pubsublite.proto.Cursor;
 import com.google.cloud.pubsublite.proto.PubSubMessage;
+import com.google.cloud.pubsublite.proto.SequencedMessage;
 import com.google.common.collect.ImmutableList;
 import com.google.protobuf.ByteString;
 import java.util.Optional;
@@ -65,12 +65,11 @@ public class PubsubLiteSourceReaderTest {
     ImmutableList.Builder<Optional<SequencedMessage>> builder = ImmutableList.builder();
     for (int i : messages) {
       SequencedMessage message =
-          SequencedMessage.fromProto(
-              com.google.cloud.pubsublite.proto.SequencedMessage.newBuilder()
-                  .setMessage(
-                      PubSubMessage.newBuilder().setData(ByteString.copyFromUtf8(Long.toString(i))))
-                  .setCursor(Cursor.newBuilder().setOffset(i))
-                  .build());
+          SequencedMessage.newBuilder()
+              .setMessage(
+                  PubSubMessage.newBuilder().setData(ByteString.copyFromUtf8(Long.toString(i))))
+              .setCursor(Cursor.newBuilder().setOffset(i))
+              .build();
       builder.add(Optional.of(message));
     }
     return new FakeSubscriber(builder.build());

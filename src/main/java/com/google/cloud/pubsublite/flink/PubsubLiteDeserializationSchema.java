@@ -15,11 +15,10 @@
  */
 package com.google.cloud.pubsublite.flink;
 
-import com.google.cloud.pubsublite.SequencedMessage;
+import com.google.cloud.pubsublite.proto.SequencedMessage;
 import java.io.Serializable;
 import javax.annotation.Nullable;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
-import org.apache.flink.api.common.serialization.DeserializationSchema.InitializationContext;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 
 public interface PubsubLiteDeserializationSchema<T> extends Serializable {
@@ -33,29 +32,12 @@ public interface PubsubLiteDeserializationSchema<T> extends Serializable {
 
       @Override
       public T deserialize(SequencedMessage message) throws Exception {
-        return schema.deserialize(message.message().data().toByteArray());
+        return schema.deserialize(message.getMessage().getData().toByteArray());
       }
 
       @Override
       public TypeInformation<T> getProducedType() {
         return schema.getProducedType();
-      }
-    };
-  }
-
-  static PubsubLiteDeserializationSchema<SequencedMessage> sequencedMessageSchema() {
-    return new PubsubLiteDeserializationSchema<SequencedMessage>() {
-      @Override
-      public void open(InitializationContext context) {}
-
-      @Override
-      public SequencedMessage deserialize(com.google.cloud.pubsublite.SequencedMessage message) {
-        return message;
-      }
-
-      @Override
-      public TypeInformation<SequencedMessage> getProducedType() {
-        return TypeInformation.of(SequencedMessage.class);
       }
     };
   }

@@ -15,6 +15,8 @@
  */
 package com.google.cloud.pubsublite.flink.internal.source.reader;
 
+import static java.util.stream.Collectors.toList;
+
 import com.google.api.core.ApiFuture;
 import com.google.api.core.ApiFutures;
 import com.google.api.core.SettableApiFuture;
@@ -28,8 +30,11 @@ import java.util.Queue;
 public class FakeSubscriber implements BlockingPullSubscriber {
   private final Queue<Optional<SequencedMessage>> messages;
 
-  public FakeSubscriber(Collection<Optional<SequencedMessage>> messages) {
-    this.messages = new ArrayDeque<>(messages);
+  public FakeSubscriber(
+      Collection<Optional<com.google.cloud.pubsublite.proto.SequencedMessage>> messages) {
+    this.messages =
+        new ArrayDeque<>(
+            messages.stream().map(x -> x.map(SequencedMessage::fromProto)).collect(toList()));
   }
 
   @Override

@@ -20,6 +20,8 @@ import com.google.api.core.ApiService.Listener;
 import com.google.api.core.ApiService.State;
 import com.google.api.gax.rpc.ApiException;
 import com.google.cloud.pubsublite.MessageMetadata;
+import com.google.cloud.pubsublite.TopicPath;
+import com.google.cloud.pubsublite.flink.PubsubLiteSinkSettings;
 import com.google.cloud.pubsublite.internal.Publisher;
 import com.google.cloud.pubsublite.internal.wire.SystemExecutors;
 import com.google.common.annotations.VisibleForTesting;
@@ -29,29 +31,30 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** A map of working publishers by PublisherOptions. */
-public class PublisherCache<T> implements AutoCloseable {
+public class PublisherCache implements AutoCloseable {
   private static final Logger LOG = LoggerFactory.getLogger(PublisherCache.class);
 
-  interface PublisherFactory<T> {
-    Publisher<MessageMetadata> New(T options);
+  interface PublisherFactory {
+    Publisher<MessageMetadata> New(PubsubLiteSinkSettings<?> options);
   }
 
   @GuardedBy("this")
-  private final HashMap<T, Publisher<MessageMetadata>> livePublishers = new HashMap<>();
+  private final HashMap<TopicPath, Publisher<MessageMetadata>> livePublishers = new HashMap<>();
 
-  private final PublisherFactory<T> factory;
+  private final PublisherFactory factory;
 
-  public PublisherCache(PublisherFactory<T> factory) {
+  public PublisherCache(PublisherFactory factory) {
     this.factory = factory;
   }
 
-  private synchronized void evict(T options) {
-    livePublishers.remove(options);
+  private synchronized void evict(TopicPath topic) {
+    livePublishers.remove(topic);
   }
 
-  public synchronized Publisher<MessageMetadata> get(T options) throws ApiException {
+  public synchronized Publisher<MessageMetadata> get(PubsubLiteSinkSettings<?> options)
+      throws ApiException {
     LOG.info("Requesting a publisher for options {}", options);
-    Publisher<MessageMetadata> publisher = livePublishers.get(options);
+    Publisher<MessageMetadata> publisher = livePublishers.get(options.topicPath());
     if (publisher != null) {
       return publisher;
     }
@@ -61,25 +64,25 @@ public class PublisherCache<T> implements AutoCloseable {
           @Override
           public void failed(State s, Throwable t) {
             LOG.error("Publisher for options {} failed with exception", options, t);
-            evict(options);
+            evict(options.topicPath());
           }
         },
         SystemExecutors.getAlarmExecutor());
-    publisher.startAsync().awaitRunning();
+    publisher.startAsync();
     LOG.info("Successfully started publisher for options {}", options);
-    livePublishers.put(options, publisher);
+    livePublishers.put(options.topicPath(), publisher);
     return publisher;
   }
 
   @VisibleForTesting
-  public synchronized void set(T options, Publisher<MessageMetadata> toCache) {
-    livePublishers.put(options, toCache);
+  public synchronized void set(TopicPath topic, Publisher<MessageMetadata> toCache) {
+    livePublishers.put(topic, toCache);
     toCache.addListener(
         new Listener() {
           @Override
           public void failed(State s, Throwable t) {
-            LOG.error("Publisher for options {} failed with exception", options, t);
-            evict(options);
+            LOG.error("Publisher for topic {} failed with exception", topic, t);
+            evict(topic);
           }
         },
         SystemExecutors.getAlarmExecutor());
