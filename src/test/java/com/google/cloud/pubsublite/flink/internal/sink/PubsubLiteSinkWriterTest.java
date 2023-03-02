@@ -18,11 +18,11 @@ package com.google.cloud.pubsublite.flink.internal.sink;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.cloud.Tuple;
 import com.google.cloud.pubsublite.flink.PubsubLiteSerializationSchema;
 import com.google.cloud.pubsublite.proto.PubSubMessage;
 import com.google.protobuf.ByteString;
 import java.time.Instant;
+import org.apache.flink.api.connector.sink2.SinkWriter.Context;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -30,29 +30,41 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class SerializingPublisherTest {
-  @Mock BulkWaitPublisher<PubSubMessage> mockPublisher;
+public class PubsubLiteSinkWriterTest {
+  @Mock BulkWaitPublisher mockPublisher;
   @Mock PubsubLiteSerializationSchema<String> mockSchema;
-  SerializingPublisher<String> publisher;
+  PubsubLiteSinkWriter<String> writer;
 
   @Before
   public void setUp() {
-    publisher = new SerializingPublisher<>(mockPublisher, mockSchema);
+    writer = new PubsubLiteSinkWriter<>(mockPublisher, mockSchema);
   }
 
   @Test
-  public void testWaitUntilNoOutstandingPublishes() throws Exception {
-    publisher.waitUntilNoOutstandingPublishes();
-    verify(mockPublisher).waitUntilNoOutstandingPublishes();
+  public void testFlush() throws Exception {
+    writer.flush(false);
+    verify(mockPublisher).flush();
   }
 
   @Test
   public void testPublish() throws Exception {
-    Instant timestamp = Instant.ofEpochMilli(1000);
+    long timestamp = 10000;
     PubSubMessage message =
         PubSubMessage.newBuilder().setData(ByteString.copyFromUtf8("data")).build();
-    when(mockSchema.serialize("message", timestamp)).thenReturn(message);
-    publisher.publish(Tuple.of("message", timestamp));
+    when(mockSchema.serialize("message", Instant.ofEpochMilli(timestamp))).thenReturn(message);
+    writer.write(
+        "message",
+        new Context() {
+          @Override
+          public long currentWatermark() {
+            return System.currentTimeMillis();
+          }
+
+          @Override
+          public Long timestamp() {
+            return timestamp;
+          }
+        });
     verify(mockPublisher).publish(message);
   }
 }

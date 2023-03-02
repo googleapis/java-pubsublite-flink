@@ -240,7 +240,7 @@ public class ITSourceAndSinkTest {
   public void testSink() throws Exception {
     StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
     env.fromCollection(INTEGER_STRINGS)
-        .addSink(new PubsubLiteSink<>(sinkSettings()))
+        .sinkTo(new PubsubLiteSink<>(sinkSettings()))
         .name("PSL Sink");
 
     env.fromSource(
@@ -281,7 +281,7 @@ public class ITSourceAndSinkTest {
         RestartStrategies.fixedDelayRestart(3, Time.of(10, TimeUnit.MILLISECONDS)));
 
     env.fromCollection(INTEGER_STRINGS)
-        .addSink(new PubsubLiteSink<>(sinkSettings()))
+        .sinkTo(new PubsubLiteSink<>(sinkSettings()))
         .name("PSL Sink");
 
     env.fromSource(
