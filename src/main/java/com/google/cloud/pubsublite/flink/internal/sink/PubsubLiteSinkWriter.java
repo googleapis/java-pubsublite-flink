@@ -18,6 +18,7 @@ package com.google.cloud.pubsublite.flink.internal.sink;
 import com.google.cloud.pubsublite.flink.PubsubLiteSerializationSchema;
 import java.io.IOException;
 import java.time.Instant;
+import org.apache.flink.api.common.eventtime.TimestampAssigner;
 import org.apache.flink.api.connector.sink2.SinkWriter;
 
 public class PubsubLiteSinkWriter<T> implements SinkWriter<T> {
@@ -35,6 +36,9 @@ public class PubsubLiteSinkWriter<T> implements SinkWriter<T> {
     Long timestamp = context.timestamp();
     if (timestamp == null) {
       timestamp = context.currentWatermark();
+    }
+    if (timestamp == TimestampAssigner.NO_TIMESTAMP) {
+      timestamp = System.currentTimeMillis();
     }
     publisher.publish(schema.serialize(value, Instant.ofEpochMilli(timestamp)));
   }

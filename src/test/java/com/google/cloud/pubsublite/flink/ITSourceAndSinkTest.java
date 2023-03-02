@@ -52,6 +52,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.apache.flink.api.common.eventtime.TimestampAssigner;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.restartstrategy.RestartStrategies;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
@@ -240,7 +241,6 @@ public class ITSourceAndSinkTest {
   public void testSink() throws Exception {
     StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
     env.fromCollection(INTEGER_STRINGS)
-        .assignTimestampsAndWatermarks(WatermarkStrategy.noWatermarks())
         .sinkTo(new PubsubLiteSink<>(sinkSettings()))
         .name("PSL Sink");
 
@@ -282,7 +282,6 @@ public class ITSourceAndSinkTest {
         RestartStrategies.fixedDelayRestart(3, Time.of(10, TimeUnit.MILLISECONDS)));
 
     env.fromCollection(INTEGER_STRINGS)
-        .assignTimestampsAndWatermarks(WatermarkStrategy.noWatermarks())
         .sinkTo(new PubsubLiteSink<>(sinkSettings()))
         .name("PSL Sink");
 
