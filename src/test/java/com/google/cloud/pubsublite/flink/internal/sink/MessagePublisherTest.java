@@ -24,6 +24,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.api.core.ApiFutures;
 import com.google.api.core.SettableApiFuture;
+import com.google.api.gax.rpc.ApiException;
 import com.google.api.gax.rpc.StatusCode.Code;
 import com.google.cloud.pubsublite.Message;
 import com.google.cloud.pubsublite.MessageMetadata;
@@ -63,7 +64,7 @@ public class MessagePublisherTest {
 
     messagePublisher.publish(message1);
 
-    messagePublisher.waitUntilNoOutstandingPublishes();
+    messagePublisher.flush();
 
     verify(fakeInnerPublisher).publish(Message.fromProto(message1));
   }
@@ -77,8 +78,7 @@ public class MessagePublisherTest {
     messagePublisher.publish(message1);
     verify(fakeInnerPublisher).publish(Message.fromProto(message1));
 
-    assertThrows(
-        CheckedApiException.class, () -> messagePublisher.waitUntilNoOutstandingPublishes());
+    assertThrows(ApiException.class, () -> messagePublisher.flush());
   }
 
   @Test
@@ -94,7 +94,7 @@ public class MessagePublisherTest {
             .submit(
                 () -> {
                   try {
-                    messagePublisher.waitUntilNoOutstandingPublishes();
+                    messagePublisher.flush();
                   } catch (Exception e) {
                     throw new RuntimeException(e);
                   }

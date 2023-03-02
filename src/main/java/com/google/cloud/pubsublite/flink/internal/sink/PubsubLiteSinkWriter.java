@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Google LLC
+ * Copyright 2023 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,29 +15,37 @@
  */
 package com.google.cloud.pubsublite.flink.internal.sink;
 
-import com.google.cloud.Tuple;
 import com.google.cloud.pubsublite.flink.PubsubLiteSerializationSchema;
-import com.google.cloud.pubsublite.internal.CheckedApiException;
-import com.google.cloud.pubsublite.proto.PubSubMessage;
+import java.io.IOException;
 import java.time.Instant;
+import org.apache.flink.api.connector.sink2.SinkWriter;
 
-public class SerializingPublisher<T> implements BulkWaitPublisher<Tuple<T, Instant>> {
-  private final BulkWaitPublisher<PubSubMessage> inner;
+public class PubsubLiteSinkWriter<T> implements SinkWriter<T> {
+  private final BulkWaitPublisher publisher;
   private final PubsubLiteSerializationSchema<T> schema;
 
-  public SerializingPublisher(
-      BulkWaitPublisher<PubSubMessage> inner, PubsubLiteSerializationSchema<T> schema) {
-    this.inner = inner;
+  public PubsubLiteSinkWriter(
+      BulkWaitPublisher publisher, PubsubLiteSerializationSchema<T> schema) {
+    this.publisher = publisher;
     this.schema = schema;
   }
 
   @Override
-  public void publish(Tuple<T, Instant> message) throws InterruptedException {
-    inner.publish(schema.serialize(message.x(), message.y()));
+  public void write(T value, Context context) throws InterruptedException {
+    Long timestamp = context.timestamp();
+    if (timestamp == null) {
+      timestamp = context.currentWatermark();
+    }
+    publisher.publish(schema.serialize(value, Instant.ofEpochMilli(timestamp)));
   }
 
   @Override
-  public void waitUntilNoOutstandingPublishes() throws CheckedApiException {
-    inner.waitUntilNoOutstandingPublishes();
+  public void flush(boolean endOfInput) throws IOException {
+    publisher.flush();
+  }
+
+  @Override
+  public void close() throws IOException {
+    publisher.flush();
   }
 }

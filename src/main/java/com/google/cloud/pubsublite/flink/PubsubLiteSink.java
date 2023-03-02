@@ -15,67 +15,35 @@
  */
 package com.google.cloud.pubsublite.flink;
 
-import com.google.cloud.Tuple;
-import com.google.cloud.pubsublite.flink.internal.sink.BulkWaitPublisher;
 import com.google.cloud.pubsublite.flink.internal.sink.MessagePublisher;
 import com.google.cloud.pubsublite.flink.internal.sink.PerServerPublisherCache;
-import com.google.cloud.pubsublite.flink.internal.sink.SerializingPublisher;
-import com.google.errorprone.annotations.concurrent.GuardedBy;
-import java.time.Instant;
-import org.apache.flink.api.common.serialization.RuntimeContextInitializationContextAdapters;
-import org.apache.flink.configuration.Configuration;
-import org.apache.flink.runtime.state.FunctionInitializationContext;
-import org.apache.flink.runtime.state.FunctionSnapshotContext;
-import org.apache.flink.streaming.api.checkpoint.CheckpointedFunction;
-import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
+import com.google.cloud.pubsublite.flink.internal.sink.PubsubLiteSinkWriter;
+import java.io.IOException;
+import org.apache.flink.api.connector.sink2.Sink;
+import org.apache.flink.api.connector.sink2.SinkWriter;
 
-public class PubsubLiteSink<T> extends RichSinkFunction<T> implements CheckpointedFunction {
+public class PubsubLiteSink<T> implements Sink<T> {
   private static final long serialVersionUID = 849752028745098L;
 
   private final PubsubLiteSinkSettings<T> settings;
-
-  @GuardedBy("this")
-  private transient BulkWaitPublisher<Tuple<T, Instant>> publisher;
 
   public PubsubLiteSink(PubsubLiteSinkSettings<T> settings) {
     this.settings = settings;
   }
 
   @Override
-  public void initializeState(FunctionInitializationContext functionInitializationContext) {}
-
-  @Override
-  public synchronized void snapshotState(FunctionSnapshotContext functionSnapshotContext)
-      throws Exception {
-    publisher.waitUntilNoOutstandingPublishes();
-  }
-
-  @Override
-  public synchronized void invoke(T value, Context context) throws Exception {
-    Long timestamp = context.timestamp();
-    if (timestamp == null) {
-      timestamp = context.currentProcessingTime();
+  public SinkWriter<T> createWriter(InitContext initContext) throws IOException {
+    PubsubLiteSerializationSchema<T> schema = settings.serializationSchema();
+    try {
+      schema.open(initContext.asSerializationSchemaInitializationContext());
+    } catch (RuntimeException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new IOException(e);
     }
-    publisher.publish(Tuple.of(value, Instant.ofEpochMilli(timestamp)));
-  }
-
-  @Override
-  public synchronized void open(Configuration parameters) throws Exception {
-    super.open(parameters);
-    settings
-        .serializationSchema()
-        .open(
-            RuntimeContextInitializationContextAdapters.serializationAdapter(
-                getRuntimeContext(), metricGroup -> metricGroup.addGroup("user")));
-    publisher =
-        new SerializingPublisher<>(
-            new MessagePublisher(
-                PerServerPublisherCache.getOrCreate(settings), settings.maxBytesOutstanding()),
-            settings.serializationSchema());
-  }
-
-  @Override
-  public synchronized void close() throws Exception {
-    publisher.waitUntilNoOutstandingPublishes();
+    return new PubsubLiteSinkWriter<>(
+        new MessagePublisher(
+            PerServerPublisherCache.getOrCreate(settings), settings.maxBytesOutstanding()),
+        schema);
   }
 }

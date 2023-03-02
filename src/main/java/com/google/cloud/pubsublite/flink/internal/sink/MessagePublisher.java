@@ -21,7 +21,6 @@ import com.google.api.core.ApiFuture;
 import com.google.api.core.ApiFutures;
 import com.google.cloud.pubsublite.Message;
 import com.google.cloud.pubsublite.MessageMetadata;
-import com.google.cloud.pubsublite.internal.CheckedApiException;
 import com.google.cloud.pubsublite.internal.ExtractStatus;
 import com.google.cloud.pubsublite.internal.Publisher;
 import com.google.cloud.pubsublite.proto.PubSubMessage;
@@ -31,7 +30,7 @@ import java.util.concurrent.Semaphore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MessagePublisher implements BulkWaitPublisher<PubSubMessage> {
+public class MessagePublisher implements BulkWaitPublisher {
   private static final Logger LOG = LoggerFactory.getLogger(MessagePublisher.class);
   private final Publisher<MessageMetadata> publisher;
   private final List<ApiFuture<MessageMetadata>> publishes;
@@ -69,12 +68,12 @@ public class MessagePublisher implements BulkWaitPublisher<PubSubMessage> {
   }
 
   @Override
-  public void waitUntilNoOutstandingPublishes() throws CheckedApiException {
+  public void flush() {
     try {
       ApiFutures.allAsList(publishes).get();
       publishes.clear();
     } catch (Exception e) {
-      throw ExtractStatus.toCanonical(e);
+      throw ExtractStatus.toCanonical(e).underlying;
     }
   }
 }
