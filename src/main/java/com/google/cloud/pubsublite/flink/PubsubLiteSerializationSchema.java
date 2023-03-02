@@ -18,6 +18,7 @@ package com.google.cloud.pubsublite.flink;
 import com.google.cloud.Timestamp;
 import com.google.cloud.pubsublite.proto.PubSubMessage;
 import com.google.protobuf.ByteString;
+import com.google.protobuf.util.Timestamps;
 import java.io.Serializable;
 import java.sql.Date;
 import java.time.Instant;
@@ -36,7 +37,7 @@ public interface PubsubLiteSerializationSchema<T> extends Serializable {
       public PubSubMessage serialize(T value, Instant timestamp) {
         return PubSubMessage.newBuilder()
             .setData(ByteString.copyFrom(schema.serialize(value)))
-            .setEventTime(Timestamp.of(Date.from(timestamp)).toProto())
+            .setEventTime(Timestamps.fromMillis(timestamp.toEpochMilli()))
             .build();
       }
     };
