@@ -22,7 +22,6 @@ import static org.mockito.Mockito.spy;
 import com.google.api.core.ApiFutures;
 import com.google.cloud.pubsublite.AdminClient;
 import com.google.cloud.pubsublite.CloudZone;
-import com.google.cloud.pubsublite.Message;
 import com.google.cloud.pubsublite.MessageMetadata;
 import com.google.cloud.pubsublite.ProjectId;
 import com.google.cloud.pubsublite.SubscriptionName;
@@ -107,7 +106,9 @@ public class ITSourceAndSinkTest {
   }
 
   private Publisher<MessageMetadata> getPublisher() {
-    return PerServerPublisherCache.getOrCreate(sinkSettings());
+    Publisher<MessageMetadata> publisher = PerServerPublisherCache.getOrCreate(sinkSettings());
+    publisher.awaitRunning();
+    return publisher;
   }
 
   private AdminClient getAdminClient() {
@@ -266,8 +267,8 @@ public class ITSourceAndSinkTest {
     Publisher<MessageMetadata> publisher = spy(PerServerPublisherCache.getOrCreate(sinkSettings()));
     Mockito.doAnswer(
             inv -> {
-              Message m = inv.getArgument(0);
-              if (m.data().toStringUtf8().equals(INTEGER_STRINGS.get(37))
+              PubSubMessage m = inv.getArgument(0);
+              if (m.getData().toStringUtf8().equals(INTEGER_STRINGS.get(37))
                   && staticSet.add("publishFailOnce")) {
                 return ApiFutures.immediateFailedFuture(new RuntimeException("failure"));
               }
