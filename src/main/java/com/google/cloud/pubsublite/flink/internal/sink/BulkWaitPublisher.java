@@ -15,12 +15,11 @@
  */
 package com.google.cloud.pubsublite.flink.internal.sink;
 
-import com.google.cloud.pubsublite.internal.CheckedApiException;
+import com.google.cloud.pubsublite.proto.PubSubMessage;
+import java.io.Flushable;
 
-// Thread-compatible.
-public interface BulkWaitPublisher<T> {
+/** A publisher that can be flushed to wait on all outstanding messages. */
+public interface BulkWaitPublisher extends Flushable {
 
-  void publish(T message) throws InterruptedException;
-
-  void waitUntilNoOutstandingPublishes() throws CheckedApiException;
+  void publish(PubSubMessage message) throws InterruptedException;
 }
