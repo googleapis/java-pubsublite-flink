@@ -19,7 +19,6 @@ import static com.google.common.util.concurrent.MoreExecutors.directExecutor;
 
 import com.google.api.core.ApiFuture;
 import com.google.api.core.ApiFutures;
-import com.google.cloud.pubsublite.Message;
 import com.google.cloud.pubsublite.MessageMetadata;
 import com.google.cloud.pubsublite.internal.ExtractStatus;
 import com.google.cloud.pubsublite.internal.Publisher;
@@ -62,7 +61,7 @@ public class MessagePublisher implements BulkWaitPublisher {
           "Publisher flow controlled due to too many bytes (>{}) outstanding", maxBytesOutstanding);
       bytesOutstanding.acquire(size);
     }
-    ApiFuture<MessageMetadata> future = publisher.publish(Message.fromProto(message));
+    ApiFuture<MessageMetadata> future = publisher.publish(message);
     future.addListener(() -> bytesOutstanding.release(size), directExecutor());
     publishes.add(future);
   }

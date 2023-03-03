@@ -26,7 +26,6 @@ import com.google.api.core.ApiFutures;
 import com.google.api.core.SettableApiFuture;
 import com.google.api.gax.rpc.ApiException;
 import com.google.api.gax.rpc.StatusCode.Code;
-import com.google.cloud.pubsublite.Message;
 import com.google.cloud.pubsublite.MessageMetadata;
 import com.google.cloud.pubsublite.internal.CheckedApiException;
 import com.google.cloud.pubsublite.internal.Publisher;
@@ -58,7 +57,7 @@ public class MessagePublisherTest {
   @Test
   public void testPublish() throws Exception {
     PubSubMessage message1 = PubSubMessage.newBuilder().build();
-    when(fakeInnerPublisher.publish(Message.fromProto(message1)))
+    when(fakeInnerPublisher.publish(message1))
         .thenReturn(
             ApiFutures.immediateFuture(MessageMetadata.of(examplePartition(), exampleOffset())));
 
@@ -66,17 +65,17 @@ public class MessagePublisherTest {
 
     messagePublisher.flush();
 
-    verify(fakeInnerPublisher).publish(Message.fromProto(message1));
+    verify(fakeInnerPublisher).publish(message1);
   }
 
   @Test
   public void testSinglePublishFailure() throws Exception {
     PubSubMessage message1 = PubSubMessage.newBuilder().build();
-    when(fakeInnerPublisher.publish(Message.fromProto(message1)))
+    when(fakeInnerPublisher.publish(message1))
         .thenReturn(
             ApiFutures.immediateFailedFuture(new CheckedApiException(Code.INTERNAL).underlying));
     messagePublisher.publish(message1);
-    verify(fakeInnerPublisher).publish(Message.fromProto(message1));
+    verify(fakeInnerPublisher).publish(message1);
 
     assertThrows(ApiException.class, () -> messagePublisher.flush());
   }
@@ -85,9 +84,9 @@ public class MessagePublisherTest {
   public void testCheckpointWithOutstandingPublish() throws Exception {
     PubSubMessage message1 = PubSubMessage.newBuilder().build();
     SettableApiFuture<MessageMetadata> future = SettableApiFuture.create();
-    when(fakeInnerPublisher.publish(Message.fromProto(message1))).thenReturn(future);
+    when(fakeInnerPublisher.publish(message1)).thenReturn(future);
     messagePublisher.publish(message1);
-    verify(fakeInnerPublisher).publish(Message.fromProto(message1));
+    verify(fakeInnerPublisher).publish(message1);
 
     Future<?> checkpointFuture =
         Executors.newSingleThreadExecutor()
@@ -113,12 +112,12 @@ public class MessagePublisherTest {
     PubSubMessage message2 =
         PubSubMessage.newBuilder().setData(ByteString.copyFromUtf8("two")).build();
     SettableApiFuture<MessageMetadata> firstPublish = SettableApiFuture.create();
-    when(fakeInnerPublisher.publish(Message.fromProto(message1))).thenReturn(firstPublish);
-    when(fakeInnerPublisher.publish(Message.fromProto(message2)))
+    when(fakeInnerPublisher.publish(message1)).thenReturn(firstPublish);
+    when(fakeInnerPublisher.publish(message2))
         .thenReturn(
             ApiFutures.immediateFuture(MessageMetadata.of(examplePartition(), exampleOffset())));
     messagePublisher.publish(message1);
-    verify(fakeInnerPublisher).publish(Message.fromProto(message1));
+    verify(fakeInnerPublisher).publish(message1);
 
     Future<?> secondPublish =
         Executors.newSingleThreadExecutor()

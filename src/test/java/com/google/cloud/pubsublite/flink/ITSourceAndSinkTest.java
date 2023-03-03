@@ -22,7 +22,6 @@ import static org.mockito.Mockito.spy;
 import com.google.api.core.ApiFutures;
 import com.google.cloud.pubsublite.AdminClient;
 import com.google.cloud.pubsublite.CloudZone;
-import com.google.cloud.pubsublite.Message;
 import com.google.cloud.pubsublite.MessageMetadata;
 import com.google.cloud.pubsublite.ProjectId;
 import com.google.cloud.pubsublite.SubscriptionName;
@@ -33,6 +32,7 @@ import com.google.cloud.pubsublite.cloudpubsub.FlowControlSettings;
 import com.google.cloud.pubsublite.flink.internal.sink.PerServerPublisherCache;
 import com.google.cloud.pubsublite.flink.internal.source.SourceAssembler;
 import com.google.cloud.pubsublite.internal.Publisher;
+import com.google.cloud.pubsublite.proto.PubSubMessage;
 import com.google.cloud.pubsublite.proto.Subscription;
 import com.google.cloud.pubsublite.proto.Subscription.DeliveryConfig;
 import com.google.cloud.pubsublite.proto.Subscription.DeliveryConfig.DeliveryRequirement;
@@ -106,15 +106,17 @@ public class ITSourceAndSinkTest {
   }
 
   private Publisher<MessageMetadata> getPublisher() {
-    return PerServerPublisherCache.getOrCreate(sinkSettings());
+    Publisher<MessageMetadata> publisher = PerServerPublisherCache.getOrCreate(sinkSettings());
+    publisher.awaitRunning();
+    return publisher;
   }
 
   private AdminClient getAdminClient() {
     return new SourceAssembler<>(sourceSettings()).getUnownedAdminClient();
   }
 
-  private static Message messageFromString(String i) {
-    return Message.builder().setData(ByteString.copyFrom(SCHEMA.serialize(i))).build();
+  private static PubSubMessage messageFromString(String i) {
+    return PubSubMessage.newBuilder().setData(ByteString.copyFrom(SCHEMA.serialize(i))).build();
   }
 
   @Before
@@ -265,8 +267,8 @@ public class ITSourceAndSinkTest {
     Publisher<MessageMetadata> publisher = spy(PerServerPublisherCache.getOrCreate(sinkSettings()));
     Mockito.doAnswer(
             inv -> {
-              Message m = inv.getArgument(0);
-              if (m.data().toStringUtf8().equals(INTEGER_STRINGS.get(37))
+              PubSubMessage m = inv.getArgument(0);
+              if (m.getData().toStringUtf8().equals(INTEGER_STRINGS.get(37))
                   && staticSet.add("publishFailOnce")) {
                 return ApiFutures.immediateFailedFuture(new RuntimeException("failure"));
               }

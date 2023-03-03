@@ -59,7 +59,7 @@ public class MessageSplitReader
     for (Map.Entry<String, BlockingPullSubscriber> entry : subscribers.entrySet()) {
       String splitId = entry.getKey();
       BlockingPullSubscriber sub = entry.getValue();
-      sub.messageIfAvailable().ifPresent(m -> messages.put(splitId, m.toProto()));
+      sub.messageIfAvailable().ifPresent(m -> messages.put(splitId, m));
     }
     return messages.build();
   }
