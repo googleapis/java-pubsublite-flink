@@ -33,6 +33,7 @@ import com.google.cloud.pubsublite.cloudpubsub.FlowControlSettings;
 import com.google.cloud.pubsublite.flink.internal.sink.PerServerPublisherCache;
 import com.google.cloud.pubsublite.flink.internal.source.SourceAssembler;
 import com.google.cloud.pubsublite.internal.Publisher;
+import com.google.cloud.pubsublite.proto.PubSubMessage;
 import com.google.cloud.pubsublite.proto.Subscription;
 import com.google.cloud.pubsublite.proto.Subscription.DeliveryConfig;
 import com.google.cloud.pubsublite.proto.Subscription.DeliveryConfig.DeliveryRequirement;
@@ -113,8 +114,8 @@ public class ITSourceAndSinkTest {
     return new SourceAssembler<>(sourceSettings()).getUnownedAdminClient();
   }
 
-  private static Message messageFromString(String i) {
-    return Message.builder().setData(ByteString.copyFrom(SCHEMA.serialize(i))).build();
+  private static PubSubMessage messageFromString(String i) {
+    return PubSubMessage.newBuilder().setData(ByteString.copyFrom(SCHEMA.serialize(i))).build();
   }
 
   @Before
