@@ -10,7 +10,7 @@
   <modelVersion>4.0.0</modelVersion>
   <packaging>jar</packaging>
   <artifactId>pubsublite-flink</artifactId>
-  <version>0.1.1</version><!-- {x-version-update:pubsublite-flink:current} -->
+  <version>0.1.2-SNAPSHOT</version><!-- {x-version-update:pubsublite-flink:current} -->
   <properties>
     <flink.version>1.15.0</flink.version>
     <pubsublite.version>${project.parent.version}</pubsublite.version>
