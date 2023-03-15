@@ -17,11 +17,10 @@ Java idiomatic client for [Pub/Sub Lite Flink Connector][product-docs].
 
 If you are using Maven, add this to your pom.xml file:
 
-
 ```xml
 <dependency>
   <groupId>com.google.cloud</groupId>
-  <artifactId>google-cloud-pubsublite-flink</artifactId>
+  <artifactId>pubsublite-flink</artifactId>
   <version>0.0.0</version>
 </dependency>
 ```
@@ -29,13 +28,13 @@ If you are using Maven, add this to your pom.xml file:
 If you are using Gradle without BOM, add this to your dependencies
 
 ```Groovy
-implementation 'com.google.cloud:google-cloud-pubsublite-flink:0.0.0'
+implementation 'com.google.cloud:pubsublite-flink:0.0.0'
 ```
 
 If you are using SBT, add this to your dependencies
 
 ```Scala
-libraryDependencies += "com.google.cloud" % "google-cloud-pubsublite-flink" % "0.0.0"
+libraryDependencies += "com.google.cloud" % "pubsublite-flink" % "0.0.0"
 ```
 
 ## Authentication
@@ -58,8 +57,8 @@ You will need to [enable billing][enable-billing] to use Google Pub/Sub Lite Fli
 
 ### Installation and setup
 
-You'll need to obtain the `google-cloud-pubsublite-flink` library.  See the [Quickstart](#quickstart) section
-to add `google-cloud-pubsublite-flink` as a dependency in your code.
+You'll need to obtain the `pubsublite-flink` library.  See the [Quickstart](#quickstart) section
+to add `pubsublite-flink` as a dependency in your code.
 
 ## About Pub/Sub Lite Flink Connector
 
@@ -164,7 +163,7 @@ Java 11 | [![Kokoro CI][kokoro-badge-image-5]][kokoro-badge-link-5]
 Java is a registered trademark of Oracle and/or its affiliates.
 
 [product-docs]: https://cloud.google.com/pubsub/lite/docs
-[javadocs]: https://googleapis.dev/java/google-cloud-pubsublite-flink/latest/index.html
+[javadocs]: https://googleapis.dev/java/pubsublite-flink/latest/index.html
 [kokoro-badge-image-1]: http://storage.googleapis.com/cloud-devrel-public/java/badges/java-pubsublite-flink/java7.svg
 [kokoro-badge-link-1]: http://storage.googleapis.com/cloud-devrel-public/java/badges/java-pubsublite-flink/java7.html
 [kokoro-badge-image-2]: http://storage.googleapis.com/cloud-devrel-public/java/badges/java-pubsublite-flink/java8.svg
@@ -176,8 +175,8 @@ Java is a registered trademark of Oracle and/or its affiliates.
 [kokoro-badge-image-5]: http://storage.googleapis.com/cloud-devrel-public/java/badges/java-pubsublite-flink/java11.svg
 [kokoro-badge-link-5]: http://storage.googleapis.com/cloud-devrel-public/java/badges/java-pubsublite-flink/java11.html
 [stability-image]: https://img.shields.io/badge/stability-alpha-orange
-[maven-version-image]: https://img.shields.io/maven-central/v/com.google.cloud/google-cloud-pubsublite-flink.svg
-[maven-version-link]: https://search.maven.org/search?q=g:com.google.cloud%20AND%20a:google-cloud-pubsublite-flink&core=gav
+[maven-version-image]: https://img.shields.io/maven-central/v/com.google.cloud/pubsublite-flink.svg
+[maven-version-link]: https://search.maven.org/search?q=g:com.google.cloud%20AND%20a:pubsublite-flink&core=gav
 [authentication]: https://github.com/googleapis/google-cloud-java#authentication
 [auth-scopes]: https://developers.google.com/identity/protocols/oauth2/scopes
 [predefined-iam-roles]: https://cloud.google.com/iam/docs/understanding-roles#predefined_roles
