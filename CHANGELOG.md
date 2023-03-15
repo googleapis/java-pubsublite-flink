@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.1](https://github.com/googleapis/java-pubsublite-flink/compare/v0.1.0...v0.1.1) (2023-03-15)
+
+
+### Bug Fixes
+
+* Package naming and release config ([#193](https://github.com/googleapis/java-pubsublite-flink/issues/193)) ([0f35468](https://github.com/googleapis/java-pubsublite-flink/commit/0f354686564951250b6ac44417d459de43aca355))
+* Update readme and trigger release ([#196](https://github.com/googleapis/java-pubsublite-flink/issues/196)) ([8b6fe77](https://github.com/googleapis/java-pubsublite-flink/commit/8b6fe77a28f7e0e910df4e34ae6f20a29163b704))
+
+
+### Dependencies
+
+* Update dependency com.google.cloud:google-cloud-pubsublite-parent to v1.12.0 ([#191](https://github.com/googleapis/java-pubsublite-flink/issues/191)) ([77648f7](https://github.com/googleapis/java-pubsublite-flink/commit/77648f764031055e7492ba3a21aa444a53668dac))
+
 ## 0.1.0 (2023-03-14)
 
 
