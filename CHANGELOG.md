@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/googleapis/java-pubsublite-flink/compare/v0.1.1...v0.1.2) (2023-03-16)
+
+
+### Bug Fixes
+
+* Update pom.xml ([#200](https://github.com/googleapis/java-pubsublite-flink/issues/200)) ([0c86fb5](https://github.com/googleapis/java-pubsublite-flink/commit/0c86fb524376f049dbb7bb662655acfc8f32641b))
+
 ## [0.1.1](https://github.com/googleapis/java-pubsublite-flink/compare/v0.1.0...v0.1.1) (2023-03-15)
 
 
