@@ -44,6 +44,19 @@
         </configuration>
       </plugin>
     </plugins>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-dependency-plugin</artifactId>
+          <configuration>
+            <ignoredUnusedDeclaredDependencies>
+              <ignoredUnusedDeclaredDependency>com.google.flogger:google-extensions</ignoredUnusedDeclaredDependency>
+            </ignoredUnusedDeclaredDependencies>
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
   </build>
   <dependencies>
     <dependency>
@@ -96,11 +109,6 @@
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
       <version>2.0.6</version>
-    </dependency>
-    <dependency>
-      <groupId>com.google.flogger</groupId>
-      <artifactId>flogger</artifactId>
-      <version>0.8</version>
     </dependency>
     <dependency>
       <groupId>com.google.api</groupId>
