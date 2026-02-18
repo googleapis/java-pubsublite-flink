@@ -11,7 +11,7 @@
   "repo": "googleapis/java-pubsublite-flink",
   "repo_short": "java-pubsublite-flink",
   "distribution_name": "com.google.cloud:google-cloud-pubsublite-flink",
-  "codeowner_team": "@googleapis/api-pubsublite",
+  "codeowner_team": "@googleapis/managed-kafka-team",
   "api_id": "pubsublite-flink.googleapis.com",
   "library_type": "AGENT",
   "requires_billing": true
