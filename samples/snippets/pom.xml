@@ -28,9 +28,14 @@
     <dependency>
       <groupId>com.google.cloud</groupId>
       <artifactId>google-cloud-pubsublite-flink</artifactId>
-      <version>0.0.0</version>
+      <version>0.1.0-SNAPSHOT</version>
     </dependency>
-
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-test-utils_2.11</artifactId>
+      <version>1.13.2</version>
+      <scope>test</scope>
+    </dependency>
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
